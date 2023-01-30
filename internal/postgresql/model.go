@@ -2,43 +2,23 @@ package postgresql
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/constants/errs"
+	"gophkeeper/internal/encryption"
 )
 
 type Respondent interface {
 	GetType() string
 	GetMainText() string
-	GetSecondaryText() string
+	GetSecondaryText(string) string
 }
 
 type MapResponse = map[uuid.UUID]Respondent
-
-//
-//type HandlerJSON interface {
-//	Marshal() ([]byte, error)
-//	Unmarshal([]byte) error
-//}
-
-//type CheckingExistence interface {
-//	CheckExistence(context.Context, *pgxpool.Conn) (bool, error)
-//}
-//
-//type Inserter interface {
-//	Insert(context.Context, *pgxpool.Conn) error
-//}
-//
-//type Updater interface {
-//	Update(context.Context, *pgxpool.Conn) error
-//}
-
-//type Selecter interface {
-//	Select(context.Context, *pgxpool.Conn) (interface{}, error)
-//}
 
 type User struct {
 	Name         string `json:"login"`
@@ -48,6 +28,7 @@ type User struct {
 
 type PairsLoginPassword struct {
 	User      string `json:"user"`
+	Uid       string `json:"uid"`
 	TypePairs string `json:"type"`
 	Name      string `json:"name"`
 	Password  string `json:"password"`
@@ -59,55 +40,62 @@ type TextData struct {
 	Text string `json:"text"`
 }
 
-type KeyContext string
-
-func SelectAll(ctx context.Context, conn *pgxpool.Conn) (MapResponse, error) {
-
-	user := ctx.Value(KeyContext("user"))
-	mr := MapResponse{}
-
-	rows, err := conn.Query(ctx, constants.QuerySelectPairsTemplate, user)
-	if err != nil {
-		return nil, errs.InvalidFormat
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var plp PairsLoginPassword
-
-		err = rows.Scan(&plp.User, &plp.TypePairs, &plp.Name, &plp.Password)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-
-		mr[uuid.New()] = &plp
-	}
-
-	rows, err = conn.Query(ctx, constants.QuerySelectTextData, user)
-	if err != nil {
-		return nil, errs.InvalidFormat
-	}
-
-	for rows.Next() {
-		var td TextData
-
-		err = rows.Scan(&td.User, &td.Uid, &td.Text)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-
-		mr[uuid.New()] = &td
-	}
-
-	return mr, nil
+type PortionBinaryData struct {
+	Uid     string `json:"uid"`
+	Portion int64  `json:"portion"`
+	Body    string `json:"body"`
 }
+
+type BinaryData struct {
+	User          string `json:"user"`
+	Uid           string `json:"uid"`
+	Patch         string `json:"patch"`
+	DownloadPatch string `json:"download_patch,omitempty"`
+	Name          string `json:"name"`
+	Expansion     string `json:"expansion"`
+	Size          string `json:"size"`
+}
+
+type BankCard struct {
+	User   string        `json:"user"`
+	Uid    string        `json:"uid"`
+	Number string        `json:"patch"`
+	Date   time.Duration `json:"date,omitempty"`
+	Cvc    string        `json:"cvc"`
+}
+
+type PairsLoginPasswordWithType struct {
+	Type               string
+	PairsLoginPassword []PairsLoginPassword
+}
+
+type TextDataWithType struct {
+	Type     string
+	TextData []TextData
+}
+
+type BinaryDataWithType struct {
+	Type       string
+	BinaryData []BinaryData
+}
+
+type BankCardWithType struct {
+	Type     string
+	BankCard []BankCard
+}
+
+type Response struct {
+	TypeResponse  string `json:"type"`
+	MainText      string `json:"main_text"`
+	SecondaryText string `json:"secondary_text"`
+}
+
+type KeyContext string
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *PairsLoginPassword) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
-	rows, err := conn.Query(ctx, constants.QuerySelectOnePairsTemplate, p.User, p.TypePairs, p.Name)
+	rows, err := conn.Query(ctx, constants.QuerySelectOnePairsTemplate, p.User, p.Uid)
 	if err != nil {
 		return false, errs.InvalidFormat
 	}
@@ -117,7 +105,7 @@ func (p *PairsLoginPassword) CheckExistence(ctx context.Context, conn *pgxpool.C
 }
 
 func (p *PairsLoginPassword) Insert(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryInsertPairsTemplate, p.User, p.TypePairs, p.Name, p.Password)
+	_, err := conn.Exec(ctx, constants.QueryInsertPairsTemplate, p.User, p.Uid, p.TypePairs, p.Name, p.Password)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -126,7 +114,7 @@ func (p *PairsLoginPassword) Insert(ctx context.Context, conn *pgxpool.Conn) err
 }
 
 func (p *PairsLoginPassword) Update(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryUpdatePairsTemplate, p.User, p.TypePairs, p.Name, p.Password)
+	_, err := conn.Exec(ctx, constants.QueryUpdatePairsTemplate, p.User, p.Uid, p.TypePairs, p.Name, p.Password)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -139,11 +127,13 @@ func (p *PairsLoginPassword) GetType() string {
 }
 
 func (p *PairsLoginPassword) GetMainText() string {
-	return p.TypePairs
+	return p.Uid
 }
 
-func (p *PairsLoginPassword) GetSecondaryText() string {
-	return p.Name + ":::" + p.Password
+func (p *PairsLoginPassword) GetSecondaryText(cryptoKey string) string {
+	return encryption.DecryptString(p.TypePairs, cryptoKey) + ":::" +
+		encryption.DecryptString(p.Name, cryptoKey) + ":::" +
+		encryption.DecryptString(p.Password, cryptoKey)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -204,6 +194,103 @@ func (t *TextData) GetMainText() string {
 	return t.Uid
 }
 
-func (t *TextData) GetSecondaryText() string {
-	return t.Text
+func (t *TextData) GetSecondaryText(cryptoKey string) string {
+	return encryption.DecryptString(t.Text, cryptoKey)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (b *BinaryData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
+	rows, err := conn.Query(ctx, constants.QuerySelectOneBinaryData, b.User, b.Uid)
+	if err != nil {
+		return false, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	return rows.Next(), nil
+}
+
+func (b *BinaryData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
+	_, err := conn.Exec(ctx, constants.QueryInsertBinaryData,
+		b.User, b.Uid, b.Name, b.Expansion, b.Size, b.Patch)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
+func (b *BinaryData) Update(ctx context.Context, conn *pgxpool.Conn) error {
+	_, err := conn.Exec(ctx, constants.QueryUpdateBinaryData, b.User, b.Uid, b.Name, b.Expansion, b.Size, b.Patch)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
+func (b *BinaryData) GetType() string {
+	return constants.TypeBinaryData.String()
+}
+
+func (b *BinaryData) GetMainText() string {
+	return b.Uid
+}
+
+func (b *BinaryData) GetSecondaryText(cryptoKey string) string {
+	return b.Name + ":::" + b.Expansion + ":::" + b.Size + ":::" + b.Patch
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (b *BankCard) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
+	rows, err := conn.Query(ctx, constants.QuerySelectOneBankCard, b.User, b.Uid)
+	if err != nil {
+		return false, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	return rows.Next(), nil
+}
+
+func (b *BankCard) Insert(ctx context.Context, conn *pgxpool.Conn) error {
+	_, err := conn.Exec(ctx, constants.QueryInsertBankCard, b.User, b.Uid, b.Number, b.Cvc)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
+func (b *BankCard) Update(ctx context.Context, conn *pgxpool.Conn) error {
+	_, err := conn.Exec(ctx, constants.QueryUpdateBankCard, b.User, b.Uid, b.Number, b.Cvc)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
+func (b *BankCard) GetType() string {
+	return constants.TypeBankCardData.String()
+}
+
+func (b *BankCard) GetMainText() string {
+	return b.Uid
+}
+
+func (b *BankCard) GetSecondaryText(cryptoKey string) string {
+	return encryption.DecryptString(b.Number, cryptoKey) + ":::" +
+		encryption.DecryptString(b.Cvc, cryptoKey)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (p *PortionBinaryData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
+	_, err := conn.Exec(ctx, constants.QueryInsertPortionsBinaryData, p.Uid, p.Portion, p.Body)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
 }

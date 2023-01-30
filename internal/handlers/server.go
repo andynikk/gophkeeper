@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -10,28 +8,17 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/constants/errs"
 	"gophkeeper/internal/environment"
 	"gophkeeper/internal/midware"
 	"gophkeeper/internal/postgresql"
-
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 )
 
-type Storage map[string]MapResponse
-type MapResponse map[string][]Response
-
-type Response struct {
-	TypeResponse  int    `json:"type"`
-	MainText      string `json:"main_text"`
-	SecondaryText string `json:"secondary_text"`
-}
-
-type signalEnd struct {
-	End bool `json:"end"`
-}
+type MapResponse map[string][]postgresql.Response
 
 type Server struct {
 	*mux.Router
@@ -69,7 +56,6 @@ func (srv *Server) Run() {
 
 func (srv *Server) initRouters() {
 	r := mux.NewRouter()
-	r.Use(midware.GzipMiddlware)
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -83,12 +69,34 @@ func (srv *Server) initRouters() {
 			log.Println(err)
 			return
 		}
-		srv.websocket(conn)
+		srv.wsData(conn)
+	})
+
+	r.HandleFunc("/socket_file", func(w http.ResponseWriter, r *http.Request) {
+
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		srv.wsBinaryData(conn)
+	})
+
+	r.HandleFunc("/socket_download_file", func(w http.ResponseWriter, r *http.Request) {
+
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		srv.wsDownloadBinaryData(conn, r)
 	})
 
 	//POST
 	r.Handle("/api/user/pairs/{event}", midware.IsAuthorized(srv.apiPairsLoginPasswordPOST)).Methods("POST")
 	r.Handle("/api/user/text/{event}", midware.IsAuthorized(srv.apiTextDataPOST)).Methods("POST")
+	r.Handle("/api/user/binary/{event}", midware.IsAuthorized(srv.apiBinaryPOST)).Methods("POST")
+	r.Handle("/api/user/card/{event}", midware.IsAuthorized(srv.apiBankCardPOST)).Methods("POST")
 
 	//POST Handle Func
 	r.HandleFunc("/api/user/register", srv.apiUserRegisterPOST).Methods("POST")
@@ -97,44 +105,7 @@ func (srv *Server) initRouters() {
 	r.HandleFunc("/", srv.HandleFunc).Methods("GET")
 
 	r.NotFoundHandler = http.HandlerFunc(srv.HandlerNotFound)
-
 	srv.Router = r
-}
-
-func (srv *Server) websocket(conn *websocket.Conn) {
-	b := []byte("")
-	for {
-		_, messageContent, err := conn.ReadMessage()
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			return
-		}
-
-		ctx := context.Background()
-
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), string(messageContent))
-		arrPlp, err := srv.DBConnector.SelectPairsLoginPassword(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		msg, err := json.MarshalIndent(&arrPlp, "", " ")
-		if err = conn.WriteMessage(constants.TypePairsLoginPassword.Int(), msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		arrTd, err := srv.DBConnector.SelectTextData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		msg, err = json.MarshalIndent(&arrTd, "", " ")
-		if err = conn.WriteMessage(constants.TypeTextData.Int(), msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(0, b); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-	}
 }
 
 func (srv *Server) initDataBase() {

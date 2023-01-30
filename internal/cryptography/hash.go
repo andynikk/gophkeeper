@@ -8,7 +8,7 @@ import (
 	"gophkeeper/internal/constants"
 )
 
-func HeshSHA256(data string, strKey string) (hash string) {
+func HashSHA256(data string, strKey string) (hash string) {
 
 	if strKey == "" {
 		strKey = string(constants.HashKey[:])

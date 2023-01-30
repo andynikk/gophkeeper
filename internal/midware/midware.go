@@ -2,40 +2,13 @@ package midware
 
 import (
 	"errors"
-	"io"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
 
-	"gophkeeper/internal/compression"
 	"gophkeeper/internal/constants"
 )
 
-func GzipMiddlware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer h.ServeHTTP(w, r)
-
-		body := r.Body
-		contentEncoding := r.Header.Get("Content-Encoding")
-
-		err := compression.DecompressBody(contentEncoding, body)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
-		}
-
-		byteHeader, err := io.ReadAll(body)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			http.Error(w, "Ошибка чтения тела", http.StatusInternalServerError)
-		}
-
-		r.Header.Set(constants.HeaderMiddlewareBody, string(byteHeader))
-		w.Header().Set(constants.HeaderMiddlewareBody, string(byteHeader))
-	})
-}
-
-// IsAuthorized TODO: Проверка аутентификации
 func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/caarlos0/env/v6"
+
+	"gophkeeper/internal/constants"
 )
 
 type ClientConfigENV struct {
@@ -59,8 +61,13 @@ func (c *ClientConfig) InitConfigAgentENV() {
 	c.Address = addressServ
 	c.Key = keyHash
 	fileInfo, err := os.Stat(patchCryptoKey)
-	if fileInfo != nil && err != nil {
-		c.CryptoKey = patchCryptoKey
+	if fileInfo != nil && err == nil {
+		res, err := os.ReadFile(patchCryptoKey)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			return
+		}
+		c.CryptoKey = string(res)
 	}
 }
 
@@ -80,8 +87,13 @@ func (c *ClientConfig) InitConfigAgentFlag() {
 	}
 	if c.CryptoKey == "" {
 		fileInfo, err := os.Stat(*cryptoKeyFlag)
-		if fileInfo != nil && err != nil {
-			c.CryptoKey = *cryptoKeyFlag
+		if fileInfo != nil && err == nil {
+			res, err := os.ReadFile(*cryptoKeyFlag)
+			if err != nil {
+				constants.Logger.ErrorLog(err)
+				return
+			}
+			c.CryptoKey = string(res)
 		}
 	}
 }

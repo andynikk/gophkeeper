@@ -6,17 +6,17 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/gdamore/tcell/v2 v2.5.3
 	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/rivo/tview v0.0.0-20230104153304-892d1a2eb0da
 	github.com/rs/zerolog v1.28.0
+	github.com/theplant/luhn v0.0.0-20170224032821-81a1a381387a
 )
 
 require (
 	github.com/gdamore/encoding v1.0.0 // indirect
-	github.com/gdamore/tcell v1.4.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.13.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect

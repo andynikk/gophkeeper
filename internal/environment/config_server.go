@@ -20,7 +20,7 @@ type ServerConfig struct {
 
 func NewConfigServer() (*ServerConfig, error) {
 
-	addressPtr := flag.String("a", constants.AdressServer, "порт сервера")
+	addressPtr := flag.String("a", constants.AdressServer, "адрес сервера")
 	flag.Parse()
 
 	var cfgENV ServerConfigENV
@@ -29,13 +29,13 @@ func NewConfigServer() (*ServerConfig, error) {
 		log.Fatal(err)
 	}
 
-	addresServer := cfgENV.Address
+	addressServer := cfgENV.Address
 	if _, ok := os.LookupEnv("ADDRESS"); !ok {
-		addresServer = *addressPtr
+		addressServer = *addressPtr
 	}
 
 	sc := ServerConfig{
-		Address: addresServer,
+		Address: addressServer,
 	}
 	return &sc, err
 }

@@ -22,58 +22,55 @@ const (
 )
 
 const (
-	TimeLivingCertificateYaer   = 10
-	TimeLivingCertificateMounth = 0
-	TimeLivingCertificateDay    = 0
-
-	TypeEncryption = "sha512"
-
 	AdressServer = "localhost:8080"
 
-	QuerySelectUserWithWhereTemplate = `SELECT 
-							* 
-						FROM 
-							gophkeeper."Users"
-						WHERE 
-							"User" = $1;`
+	HeaderAuthorization = "Authorization"
 
-	QuerySelectUserWithPasswordTemplate = `SELECT 
-							* 
-						FROM 
-							gophkeeper."Users"
-						WHERE 
-							"User" = $1 and "Password" = $2;`
+	Step = 512000
+)
+
+const (
+	QuerySelectUserWithWhereTemplate = `SELECT 
+								* 
+							FROM 
+								gophkeeper."Users"
+							WHERE 
+								"User" = $1;`
 
 	QueryInsertUserTemplate = `INSERT INTO 
-							gophkeeper."Users" ("User", "Password") 
-						VALUES
-							($1, $2);`
+								gophkeeper."Users" ("User", "Password") 
+							VALUES
+								($1, $2);`
+) //User
 
+const (
 	QueryInsertPairsTemplate = `INSERT INTO gophkeeper."PairsLoginPassword"(
-							"User", "TypePairs", "Name", "Password")
-						VALUES ($1, $2, $3, $4);`
+								"User", "UID", "TypePairs", "Name", "Password")
+							VALUES ($1, $2, $3, $4, $5);`
 
 	QueryUpdatePairsTemplate = `UPDATE gophkeeper."PairsLoginPassword"
-						SET "User"=$1, "TypePairs"=$2, "Name"=$3, "Password"=$4
-						WHERE "User" = $1 and "TypePairs" = $2 and "Name" = $3;`
+							SET "User"=$1, "UID"=$2, "TypePairs"=$3, "Name"=$4, "Password"=$5
+							WHERE "User" = $1 and "UID" = $2;`
 
-	QuerySelectPairsTemplate = `SELECT "User", "TypePairs", "Name", "Password" 
-						FROM 
-							gophkeeper."PairsLoginPassword"
-						WHERE 
-							"User" = $1;`
+	QuerySelectPairsTemplate = `SELECT "User", "UID", "TypePairs", "Name", "Password" 
+							FROM 
+								gophkeeper."PairsLoginPassword"
+							WHERE 
+								"User" = $1;`
 
-	QuerySelectOnePairsTemplate = `SELECT "User", "TypePairs", "Name", "Password" 
-						FROM 
-							gophkeeper."PairsLoginPassword"
-						WHERE 
-							"User" = $1 and "TypePairs" = $2 and "Name" = $3;`
+	QuerySelectOnePairsTemplate = `SELECT "User", "UID", "TypePairs", "Name", "Password" 
+							FROM 
+								gophkeeper."PairsLoginPassword"
+							WHERE 
+								"User" = $1 and "UID" = $2;`
 	QueryDelOnePairsTemplate = `DELETE 
-						FROM 
-							gophkeeper."PairsLoginPassword"
-						WHERE 
-							"User" = $1 and "TypePairs" = $2 and "Name" = $3;`
+							FROM 
+								gophkeeper."PairsLoginPassword"
+							WHERE 
+								"User" = $1 and ", "UID" = $2;`
+) //Pairs
 
+const (
 	QueryInsertTextData = `INSERT INTO gophkeeper."Text"(
 								"User", "UID", "Text")
 							VALUES ($1, $2, $3);`
@@ -99,10 +96,78 @@ const (
 							gophkeeper."Text"
 						WHERE 
 							"User" = $1 and "UID" = $2;`
+) //TextData
 
-	HeaderAuthorization  = "Authorization"
-	HeaderMiddlewareBody = "Middleware-Body"
-)
+const (
+	QueryInsertBankCard = `INSERT INTO gophkeeper."BankCards"(
+								"User", "UID", "Number", "Cvc")
+							VALUES ($1, $2, $3, $4);`
+
+	QueryUpdateBankCard = `UPDATE gophkeeper."BankCards"
+								SET "User"=$1, "UID"=$2, "Number"=$3, "Cvc"=$4 
+								WHERE "User" = $1 and "UID" = $2;`
+
+	QuerySelectBankCard = `SELECT "User", "UID", "Number", "Cvc" 
+						FROM 
+							gophkeeper."BankCards"
+						WHERE 
+							"User" = $1;`
+
+	QuerySelectOneBankCard = `SELECT "User", "UID", "Number", "Cvc" 	
+						FROM 
+							gophkeeper."BankCards"
+						WHERE 
+							"User" = $1 and "UID" = $2;`
+
+	QueryDelOneBankCardTemplate = `DELETE 
+						FROM 
+							gophkeeper."BankCards"
+						WHERE 
+							"User" = $1 and "UID" = $2;`
+) //BankCard
+
+const (
+	QueryInsertBinaryData = `INSERT INTO gophkeeper."Files"(
+								"User", "UID", "Name", "Expansion", "Size", "Patch")
+							VALUES ($1, $2, $3, $4, $5, $6);`
+
+	QueryUpdateBinaryData = `UPDATE gophkeeper."Files"
+								SET "User" = $1, "UID" = $2, "Name" = $3, "Expansion" = $4, "Size" = $5, "Patch" = $6 
+								WHERE "User" = $1 and "UID" = $2;`
+
+	QuerySelectBinaryData = `SELECT "User", "UID", "Name", "Expansion", "Size", "Patch" 
+						FROM 
+							gophkeeper."Files"
+						WHERE 
+							"User" = $1;`
+
+	QuerySelectOneBinaryData = `SELECT "User", "UID", "Name", "Expansion", "Size", "Patch" 	
+						FROM 
+							gophkeeper."Files"
+						WHERE 
+							"User" = $1 and "UID" = $2;`
+
+	QueryDelOneBinaryDataTemplate = `DELETE 
+						FROM 
+							gophkeeper."Files"
+						WHERE 
+							"User" = $1 and "UID" = $2;`
+) //BinaryData
+
+const (
+	QuerySelectPortionsBinaryData = `SELECT
+							"UID", "Portion", "Body"
+						FROM
+							gophkeeper."PortionsFiles"
+						WHERE
+							"UID" = $1;`
+	QueryInsertPortionsBinaryData = `INSERT INTO 
+							gophkeeper."PortionsFiles"("UID", "Portion", "Body")
+						VALUES ($1, $2, $3);`
+	QueryDelPortionsBinaryData = `DELETE FROM gophkeeper."PortionsFiles"	
+						WHERE 
+							"UID" = $1;`
+) //PortionsBinaryData
 
 var HashKey = []byte("taekwondo")
 var TimeLiveToken time.Duration = 5

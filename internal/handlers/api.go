@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
+	"strings"
+
+	"github.com/gorilla/mux"
+
+	"gophkeeper/internal/compression"
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/postgresql"
 	"gophkeeper/internal/token"
-	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 func (srv *Server) HandlerNotFound(rw http.ResponseWriter, r *http.Request) {
@@ -44,17 +48,34 @@ func (srv *Server) HandleFunc(rw http.ResponseWriter, rq *http.Request) {
 	//rw.WriteHeader(http.StatusOK)
 }
 
-// POST
 func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 
-	user := postgresql.User{}
-	if err := json.Unmarshal([]byte(r.Header.Get(constants.HeaderMiddlewareBody)), &user); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	if strings.Contains(contentEncoding, "gzip") {
+		body, err = compression.Decompress(body)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	user := postgresql.User{}
+	if err := json.Unmarshal(body, &user); err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	tokenString := ""
-	err := srv.DBConnector.NewAccount(&user)
+	err = srv.DBConnector.NewAccount(&user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
 		http.Error(w, err.Error(), HTTPErrors(err))
@@ -74,15 +95,33 @@ func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 
-	user := postgresql.User{}
-
-	if err := json.Unmarshal([]byte(r.Header.Get(constants.HeaderMiddlewareBody)), &user); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	if strings.Contains(contentEncoding, "gzip") {
+		body, err = compression.Decompress(body)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	user := postgresql.User{}
+
+	if err := json.Unmarshal(body, &user); err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	tokenString := ""
-	err := srv.DBConnector.GetAccount(user)
+	err = srv.DBConnector.GetAccount(user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
 		http.Error(w, err.Error(), HTTPErrors(err))
@@ -104,7 +143,24 @@ func (srv *Server) apiPairsLoginPasswordPOST(w http.ResponseWriter, r *http.Requ
 	event := mux.Vars(r)["event"]
 	plp := postgresql.PairsLoginPassword{}
 
-	if err := json.Unmarshal([]byte(r.Header.Get(constants.HeaderMiddlewareBody)), &plp); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	if strings.Contains(contentEncoding, "gzip") {
+		body, err = compression.Decompress(body)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := json.Unmarshal(body, &plp); err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -130,7 +186,24 @@ func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
 	event := mux.Vars(r)["event"]
 	td := postgresql.TextData{}
 
-	if err := json.Unmarshal([]byte(r.Header.Get(constants.HeaderMiddlewareBody)), &td); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	if strings.Contains(contentEncoding, "gzip") {
+		body, err = compression.Decompress(body)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := json.Unmarshal(body, &td); err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -143,6 +216,90 @@ func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := srv.DBConnector.TextData(&td); err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), HTTPErrors(err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
+	event := mux.Vars(r)["event"]
+	bd := postgresql.BinaryData{}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	if strings.Contains(contentEncoding, "gzip") {
+		body, err = compression.Decompress(body)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := json.Unmarshal(body, &bd); err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	if event == constants.EventDel.String() {
+		if err := srv.DBConnector.DelBinaryData(&bd); err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, err.Error(), HTTPErrors(err))
+		}
+		return
+	}
+
+	if err := srv.DBConnector.BinaryData(&bd); err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), HTTPErrors(err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (srv *Server) apiBankCardPOST(w http.ResponseWriter, r *http.Request) {
+	event := mux.Vars(r)["event"]
+	bc := postgresql.BankCard{}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	if strings.Contains(contentEncoding, "gzip") {
+		body, err = compression.Decompress(body)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := json.Unmarshal(body, &bc); err != nil {
+		constants.Logger.ErrorLog(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	if event == constants.EventDel.String() {
+		if err := srv.DBConnector.DelBankCard(&bc); err != nil {
+			constants.Logger.ErrorLog(err)
+			http.Error(w, err.Error(), HTTPErrors(err))
+		}
+		return
+	}
+
+	if err := srv.DBConnector.BankCard(&bc); err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), HTTPErrors(err))
 		return
