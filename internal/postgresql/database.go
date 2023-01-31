@@ -3,7 +3,6 @@ package postgresql
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -15,11 +14,7 @@ type DBConnector struct {
 	Cfg  *environment.DBConfig
 }
 
-func NewDBConnector() (*DBConnector, error) {
-	dbCfg, err := environment.NewConfigDB()
-	if err != nil {
-		log.Fatal(err)
-	}
+func NewDBConnector(dbCfg *environment.DBConfig) (*DBConnector, error) {
 
 	if dbCfg.DatabaseDsn == "" {
 		return nil, errors.New("пустой путь к базе")

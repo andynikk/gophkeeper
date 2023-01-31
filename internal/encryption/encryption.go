@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"io"
@@ -16,12 +15,6 @@ type KeyRSA struct {
 	User  string
 	Patch string
 	Key   string
-}
-
-type KeyEncryption struct {
-	TypeEncryption string
-	PublicKey      *rsa.PublicKey
-	PrivateKey     *rsa.PrivateKey
 }
 
 func DecryptString(cryptoText string, keyString string) string {

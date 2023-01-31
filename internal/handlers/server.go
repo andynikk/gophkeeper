@@ -29,8 +29,8 @@ type Server struct {
 func NewByConfig() *Server {
 	srv := &Server{}
 
-	srv.initDataBase()
 	srv.initConfig()
+	srv.initDataBase()
 	srv.initScoringSystem()
 	srv.initRouters()
 
@@ -109,7 +109,7 @@ func (srv *Server) initRouters() {
 }
 
 func (srv *Server) initDataBase() {
-	dbc, err := postgresql.NewDBConnector()
+	dbc, err := postgresql.NewDBConnector(&srv.DBConfig)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}

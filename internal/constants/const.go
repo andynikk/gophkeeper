@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"gophkeeper/internal/logger"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 type TypeRecord int
@@ -27,6 +29,8 @@ const (
 	HeaderAuthorization = "Authorization"
 
 	Step = 512000
+
+	DefaultColorClient = tcell.ColorGreen
 )
 
 const (
@@ -67,7 +71,7 @@ const (
 							FROM 
 								gophkeeper."PairsLoginPassword"
 							WHERE 
-								"User" = $1 and ", "UID" = $2;`
+								"User" = $1 and "UID" = $2;`
 ) //Pairs
 
 const (

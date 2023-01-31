@@ -18,7 +18,7 @@ import (
 	"gophkeeper/internal/postgresql"
 )
 
-var done chan interface{}
+//var done chan interface{}
 
 type TypeMsg struct {
 	Type string
@@ -62,7 +62,6 @@ func (c *Client) wsDownloadBinaryData(ctx context.Context) {
 		}
 
 		encryptionBody := encryption.DecryptString(pbd.Body, c.Config.CryptoKey)
-		//encryptionBody := pbd.Body
 		if _, err = newFile.WriteAt([]byte(encryptionBody), pbd.Portion); err != nil {
 			constants.Logger.ErrorLog(err)
 			return
@@ -111,13 +110,13 @@ func (c *Client) wsData(ctx context.Context, cancelFunc context.CancelFunc) {
 	socketUrl := fmt.Sprintf("ws://%s/socket", c.Config.Address)
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
-		log.Fatal("Error connecting to Websocket Server:", err)
+		log.Fatal("Not connect server. The application will be closed", err)
 	}
 	defer conn.Close()
 
 	go c.receiveHandlerData(conn)
 
-	saveTicker := time.NewTicker(time.Duration(3) * time.Second)
+	saveTicker := time.NewTicker(time.Duration(2) * time.Second)
 	for {
 		select {
 		case <-saveTicker.C:
@@ -135,7 +134,6 @@ func (c *Client) wsData(ctx context.Context, cancelFunc context.CancelFunc) {
 				constants.Logger.ErrorLog(err)
 				continue
 			}
-
 		case <-ctx.Done():
 			cancelFunc()
 			return
@@ -144,7 +142,7 @@ func (c *Client) wsData(ctx context.Context, cancelFunc context.CancelFunc) {
 }
 
 func (c *Client) receiveHandlerData(connection *websocket.Conn) {
-	defer close(done)
+	//defer close(done)
 	for {
 		msgType, messageContent, err := connection.ReadMessage()
 		if err != nil {
@@ -227,6 +225,12 @@ func (c *Client) receiveHandlerData(connection *websocket.Conn) {
 					TypeResponse:  constants.TypeBankCardData.String()})
 			}
 			c.DataList[constants.TypeBankCardData.String()] = arrR
+		}
+
+		namePages, _ := c.Pages.GetFrontPage()
+		if namePages == "Menu" {
+			c.TextView.SetText(c.setMainText())
+			c.Application.ForceDraw()
 		}
 	}
 }

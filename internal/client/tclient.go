@@ -3,112 +3,110 @@ package client
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
-
+	"gophkeeper/internal/constants"
 	"gophkeeper/internal/encryption"
 	"gophkeeper/internal/postgresql"
+
+	"github.com/gdamore/tcell/v2"
 )
-
-var app = tview.NewApplication()
-var form = tview.NewForm()
-
-var arrayEvent = []string{
-	"(ESC)     Main menu",
-	"(Ctrl+L)  Login",
-	"(Ctrl+R)  Register",
-	"(Ctrl+D)  Info list user",
-	"(Ctrl+P)  Add login/password pairs",
-	"(Ctrl+T)  Add arbitrary text data",
-	"(Ctrl+F)  Add arbitrary binary data",
-	"(Ctrl+B)  Add bank card details",
-	"(Ctrl+Q)  To quit",
-	"",
-	"(Ctrl+K)  Create crypto-key"}
-var textDefault = strings.Join(arrayEvent, "\n")
-
-var text = tview.NewTextView().
-	SetTextColor(tcell.ColorGreen).
-	SetText(textDefault)
-var pages = tview.NewPages()
-
-var list = tview.NewList()
 
 func (c *Client) Run() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go c.wsData(ctx, cancelFunc)
 
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if c.Name == "" &&
-			(event.Key() == tcell.KeyCtrlD ||
-				event.Key() == tcell.KeyCtrlP ||
-				event.Key() == tcell.KeyCtrlT ||
-				event.Key() == tcell.KeyCtrlB ||
-				event.Key() == tcell.KeyF8) {
+	c.Application.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 
-			text.SetText(c.setMainText())
-			pages.SwitchToPage("Menu")
+		if event.Key() == tcell.KeyEscape {
+			c.Pages.SwitchToPage("Menu")
 			return nil
 		}
 
-		switch event.Key() {
-		case tcell.KeyCtrlQ:
-			app.Stop()
-		case tcell.KeyEscape:
-			text.SetText(c.setMainText())
-			pages.SwitchToPage("Menu")
-		case tcell.KeyCtrlL:
-			//case tcell.KeyF2:
-			form.Clear(true)
-			c.openLoginForm()
-			pages.SwitchToPage("Login")
-		case tcell.KeyCtrlR:
-			form.Clear(true)
-			c.openRegisterForms()
-			pages.SwitchToPage("Register")
-		case tcell.KeyCtrlD:
-			form.Clear(true)
-			c.openListForms(list)
-			pages.SwitchToPage("ListData")
-		case tcell.KeyCtrlP:
-			form.Clear(true)
-			c.openPairsLoginPasswordForms(postgresql.PairsLoginPassword{})
-			pages.SwitchToPage("PairsLoginPassword")
-		case tcell.KeyCtrlT:
-			form.Clear(true)
-			c.openTextDataForms(postgresql.TextData{})
-			pages.SwitchToPage("TextData")
-		case tcell.KeyCtrlF:
-			form.Clear(true)
-			c.openBinaryDataForms(postgresql.BinaryData{})
-			pages.SwitchToPage("BinaryData")
-		case tcell.KeyCtrlB:
-			form.Clear(true)
-			c.openBankCardForms(postgresql.BankCard{})
-			pages.SwitchToPage("BankCard")
-		case tcell.KeyCtrlK:
-			form.Clear(true)
+		name, _ := c.Pages.GetFrontPage()
+		if name != "Menu" {
+			return event
+		}
+		if event.Key() == tcell.KeyCtrlK {
+			c.Form.Clear(true)
 			c.openEncryptionKeyForms(encryption.KeyRSA{})
-			pages.SwitchToPage("KeyRSA")
-		default:
+			c.Pages.SwitchToPage("KeyRSA")
+			return nil
+		}
 
+		if c.Name == "" &&
+			(event.Rune() == 51 ||
+				event.Rune() == 52 ||
+				event.Rune() == 53 ||
+				event.Rune() == 54 ||
+				event.Rune() == 55) {
+
+			c.Pages.SwitchToPage("Menu")
+			return nil
+		}
+
+		switch event.Rune() {
+		case 3: //Ctrl+C
+			return nil
+		case 48: //0
+			c.Application.Stop()
+		case 49: //1
+			c.Form.Clear(true)
+			c.openLoginForm()
+			c.Pages.SwitchToPage("Login")
+			return nil
+		case 50: //2
+			c.Form.Clear(true)
+			c.openRegisterForms()
+			c.Pages.SwitchToPage("Register")
+			return nil
+		case 51: //3
+			c.Form.Clear(true)
+			c.openListForms(c.List)
+			c.Pages.SwitchToPage("ListData")
+			return nil
+		case 52: //4
+			c.Form.Clear(true)
+			c.openPairsLoginPasswordForms(postgresql.PairsLoginPassword{})
+			c.Pages.SwitchToPage("PairsLoginPassword")
+			return nil
+		case 53: //5
+			c.Form.Clear(true)
+			c.openTextDataForms(postgresql.TextData{})
+			c.Pages.SwitchToPage("TextData")
+			return nil
+		case 54: //6
+			c.Form.Clear(true)
+			c.openBinaryDataForms(postgresql.BinaryData{})
+			c.Pages.SwitchToPage("BinaryData")
+			return nil
+		case 55: //7
+			c.Form.Clear(true)
+			c.openBankCardForms(postgresql.BankCard{})
+			c.Pages.SwitchToPage("BankCard")
+			return nil
 		}
 		return event
 	})
 
-	pages.AddPage("Menu", text, true, true)
-	pages.AddPage("Login", form, true, false)
-	pages.AddPage("Register", form, true, false)
-	pages.AddPage("PairsLoginPassword", form, true, false)
-	pages.AddPage("TextData", form, true, false)
-	pages.AddPage("BinaryData", form, true, false)
-	pages.AddPage("BankCard", form, true, false)
-	pages.AddPage("ListData", list, true, false)
-	pages.AddPage("KeyRSA", form, true, false)
+	c.TextView.SetBorder(true)
+	c.TextView.SetBorderColor(constants.DefaultColorClient)
 
-	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
+	c.TextView.SetTitle(" G O P H K E E P E R ")
+	c.TextView.SetTitleColor(constants.DefaultColorClient)
+
+	c.Pages.AddPage("Menu", c.TextView, true, true)
+	c.Pages.AddPage("Login", c.Form, true, false)
+	c.Pages.AddPage("Register", c.Form, true, false)
+	c.Pages.AddPage("PairsLoginPassword", c.Form, true, false)
+	c.Pages.AddPage("TextData", c.Form, true, false)
+	c.Pages.AddPage("BinaryData", c.Form, true, false)
+	c.Pages.AddPage("BankCard", c.Form, true, false)
+	c.Pages.AddPage("ListData", c.List, true, false)
+	c.Pages.AddPage("KeyRSA", c.Form, true, false)
+	c.Pages.AddPage("Comment", c.Form, true, false)
+
+	ctx = context.Background()
+	if err := c.Application.SetRoot(c.Pages, true).EnableMouse(true).Sync().Run(); err != nil {
 		panic(err)
 	}
 }
@@ -122,5 +120,5 @@ func (c *Client) setMainText() string {
 	for _, v := range c.DataList {
 		i += len(v)
 	}
-	return "USER: " + name + "\n\n" + textDefault + "\n\n record counts (" + fmt.Sprintf("%d", i) + ")"
+	return "USER: " + name + "\n\n" + c.TextDefault + "\n\nRecords counts (" + fmt.Sprintf("%d", i) + ")"
 }
