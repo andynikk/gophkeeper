@@ -4,22 +4,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="v0.002">
-      <change afterPath="$PROJECT_DIR$/cmd/client/main_test.go" afterDir="false" />
+    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="v0.003">
+      <change afterPath="$PROJECT_DIR$/ReadMe.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/client/main_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/client/main_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/server/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/server/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/client/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/client.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/client/forms.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/forms.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/client/tclient.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/tclient.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/client/websocket.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/websocket.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/compression/gzip.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/compression/gzip.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/constants/const.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/constants/const.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/constants/errs/error.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/constants/errs/error.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/cryptography/hash.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/cryptography/hash.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/encryption/encryption.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/encryption/encryption.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/environment/config_database.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/environment/config_client.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/environment/config_client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/environment/config_server.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/environment/config_server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/environment/general.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/api.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handlers/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/postgresql/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/database.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/postgresql/services.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/services.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/postgresql/model.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/model.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,7 +75,7 @@
     "nodejs_package_manager_path": "npm"
   }
 }]]></component>
-  <component name="RunManager" selected="Go Test.go test gophkeeper/cmd/client">
+  <component name="RunManager" selected="Go Build.Server">
     <configuration name="Client" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="gophkeeper" />
       <working_directory value="$PROJECT_DIR$" />
@@ -126,8 +128,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Test.go test gophkeeper/cmd/client" />
         <item itemvalue="Go Test.TestFuncClient in gophkeeper/cmd/client" />
+        <item itemvalue="Go Test.go test gophkeeper/cmd/client" />
       </list>
     </recent_temporary>
   </component>
@@ -141,7 +143,7 @@
       <updated>1674651512234</updated>
       <workItem from="1674651513995" duration="153071000" />
       <workItem from="1675002648102" duration="4276000" />
-      <workItem from="1675007337576" duration="48827000" />
+      <workItem from="1675007337576" duration="63830000" />
     </task>
     <task id="LOCAL-00001" summary="v0.001">
       <created>1674894125209</created>
@@ -164,7 +166,14 @@
       <option name="project" value="LOCAL" />
       <updated>1675080706531</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="v0.003">
+      <created>1675196280453</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1675196280453</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -184,7 +193,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v0.001" />
     <MESSAGE value="v0.002" />
-    <option name="LAST_COMMIT_MESSAGE" value="v0.002" />
+    <MESSAGE value="v0.003" />
+    <option name="LAST_COMMIT_MESSAGE" value="v0.003" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
@@ -198,25 +208,20 @@
           <option name="timeStamp" value="365" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/internal/postgresql/database.go</url>
-          <line>18</line>
-          <option name="timeStamp" value="448" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/cmd/client/main_test.go</url>
-          <line>99</line>
-          <option name="timeStamp" value="461" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/cmd/client/main_test.go</url>
-          <line>92</line>
-          <option name="timeStamp" value="463" />
+          <line>110</line>
+          <option name="timeStamp" value="464" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <watches-manager>
+      <configuration name="GoTestRunConfiguration">
+        <watch expression="constants.Logger" />
+      </configuration>
+    </watches-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/gophkeeper$go_test_gophkeeper_cmd_client.out" NAME="go test gophkeeper/cmd/client Coverage Results" MODIFIED="1675194902774" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
-    <SUITE FILE_PATH="coverage/gophkeeper$TestFuncClient_in_gophkeeper_cmd_client.out" NAME="TestFuncClient in gophkeeper/cmd/client Coverage Results" MODIFIED="1675195321248" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/gophkeeper$go_test_gophkeeper_cmd_client.out" NAME="go test gophkeeper/cmd/client Coverage Results" MODIFIED="1675196205477" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/gophkeeper$TestFuncClient_in_gophkeeper_cmd_client.out" NAME="TestFuncClient in gophkeeper/cmd/client Coverage Results" MODIFIED="1675197118130" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>

@@ -17,6 +17,7 @@ type KeyRSA struct {
 	Key   string
 }
 
+// DecryptString дешифрует строку. Использует текстовый ключ. Если возникает ошибка, то возвращает изночальную строку
 func DecryptString(cryptoText string, keyString string) string {
 
 	if keyString == "" {
@@ -42,6 +43,7 @@ func DecryptString(cryptoText string, keyString string) string {
 	return string(decrypted)
 }
 
+// EncryptString шифрует строку. Использует текстовый ключ. Если возникает ошибка, то возвращает изночальную строку
 func EncryptString(plainText string, keyString string) string {
 
 	if keyString == "" {

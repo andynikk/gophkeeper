@@ -172,10 +172,10 @@ func (c *Client) receiveHandlerData(connection *websocket.Conn) {
 				continue
 			}
 
-			var arrR []postgresql.Response
+			var arrR []postgresql.DataList
 			arrPlp := PlpWT.PairsLoginPassword
 			for _, v := range arrPlp {
-				arrR = append(arrR, postgresql.Response{MainText: v.GetMainText(),
+				arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
 					SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
 					TypeResponse:  constants.TypePairsLoginPassword.String()})
 			}
@@ -187,10 +187,10 @@ func (c *Client) receiveHandlerData(connection *websocket.Conn) {
 				continue
 			}
 
-			var arrR []postgresql.Response
+			var arrR []postgresql.DataList
 			arrTd := Td.TextData
 			for _, v := range arrTd {
-				arrR = append(arrR, postgresql.Response{MainText: v.GetMainText(),
+				arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
 					SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
 					TypeResponse:  constants.TypeTextData.String()})
 			}
@@ -202,10 +202,10 @@ func (c *Client) receiveHandlerData(connection *websocket.Conn) {
 				continue
 			}
 
-			var arrR []postgresql.Response
+			var arrR []postgresql.DataList
 			arrBd := Bd.BinaryData
 			for _, v := range arrBd {
-				arrR = append(arrR, postgresql.Response{MainText: v.GetMainText(),
+				arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
 					SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
 					TypeResponse:  constants.TypeBinaryData.String()})
 			}
@@ -217,10 +217,10 @@ func (c *Client) receiveHandlerData(connection *websocket.Conn) {
 				continue
 			}
 
-			var arrR []postgresql.Response
+			var arrR []postgresql.DataList
 			arrBd := Bc.BankCard
 			for _, v := range arrBd {
-				arrR = append(arrR, postgresql.Response{MainText: v.GetMainText(),
+				arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
 					SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
 					TypeResponse:  constants.TypeBankCardData.String()})
 			}

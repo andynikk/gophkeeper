@@ -10,22 +10,25 @@ import (
 	"gophkeeper/internal/constants"
 )
 
-type ServerConfigENV struct {
+type serverConfigENV struct {
 	Address     string `env:"ADDRESS" envDefault:"localhost:8080"`
 	DatabaseDsn string `env:"DATABASE_URI"`
 	Key         string `env:"KEY"`
 }
 
+// DBConfig структура хранения свойств базы данных
 type DBConfig struct {
 	DatabaseDsn string
 	Key         string
 }
 
+// ServerConfig структура хранения свойств конфигурации сервера
 type ServerConfig struct {
 	Address string
 	DBConfig
 }
 
+// NewConfigServer создание и заполнение структуры свойств сервера
 func NewConfigServer() (*ServerConfig, error) {
 
 	addressPtr := flag.String("a", constants.AdressServer, "адрес сервера")
@@ -33,7 +36,7 @@ func NewConfigServer() (*ServerConfig, error) {
 	keyFlag := flag.String("k", "", "ключ хеша")
 	flag.Parse()
 
-	var cfgENV ServerConfigENV
+	var cfgENV serverConfigENV
 	err := env.Parse(&cfgENV)
 	if err != nil {
 		log.Fatal(err)

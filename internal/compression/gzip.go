@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+// Compress сжимает данные (тип []byte) в gzip.
+// Возвращает сжатый []byte и ошибку.
 func Compress(data []byte) ([]byte, error) {
 
 	var valByte bytes.Buffer
@@ -19,6 +21,8 @@ func Compress(data []byte) ([]byte, error) {
 	return valByte.Bytes(), nil
 }
 
+// Decompress разархивирует данные из архива gzip.
+// Возвращает разархивированный массив байт ([]byte) и ошибку.
 func Decompress(data []byte) ([]byte, error) {
 	reader, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {

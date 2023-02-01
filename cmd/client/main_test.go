@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"gophkeeper/internal/client"
 	"gophkeeper/internal/compression"
+	"gophkeeper/internal/constants"
 	"gophkeeper/internal/cryptography"
 	"gophkeeper/internal/encryption"
 	"gophkeeper/internal/environment"
@@ -101,6 +103,18 @@ func TestFuncClient(t *testing.T) {
 			if !ok || claims["user"] != userName {
 				t.Errorf("Error checking token create (%s)", tokenString)
 			}
+		})
+	})
+
+	t.Run("Checking logger", func(t *testing.T) {
+		t.Run("Checking error log", func(t *testing.T) {
+			constants.Logger.ErrorLog(errors.New("test error"))
+			//if constants.Logger.Log. = zerolog.DebugLevel {
+			//
+			//}
+		})
+		t.Run("Checking token create", func(t *testing.T) {
+			constants.Logger.InfoLog("test info")
 		})
 	})
 

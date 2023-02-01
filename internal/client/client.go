@@ -3,18 +3,26 @@ package client
 import (
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/environment"
-	"gophkeeper/internal/handlers"
 	"gophkeeper/internal/postgresql"
 	"strings"
 
 	"github.com/rivo/tview"
 )
 
+// ListUserData Список данных пользователя. Заполняется горутиной, котрая запускается
+// go c.wsData(ctx, cancelFunc)
+// Обновляется каждые 2 секунды
+type ListUserData map[string][]postgresql.DataList
+
+// AuthorizedUser структура хранит данные авторизированного пользователя.
+// Свойство User хранит имя в явном виде.
+// Свойство Token в виде jwt токена.
 type AuthorizedUser struct {
 	postgresql.User
 	Token string
 }
 
+// Forms структура хранит данные обекты для создания форм CLI-приложения.
 type Forms struct {
 	*tview.Application
 	*tview.Form
@@ -24,13 +32,16 @@ type Forms struct {
 	*tview.List
 }
 
+// Client общая структура. Хранит все необходимые данные клиента.
 type Client struct {
 	Config *environment.ClientConfig
 	Forms
 	AuthorizedUser
-	DataList handlers.MapResponse
+	DataList ListUserData
 }
 
+// NewClient Создание и заполнение клиента.
+// Функция используется при старте клиента.
 func NewClient() *Client {
 	var arrayEvent = []string{
 		"(ESC) Main menu",
@@ -51,7 +62,7 @@ func NewClient() *Client {
 	c := Client{
 		Config:         config,
 		AuthorizedUser: AuthorizedUser{},
-		DataList:       handlers.MapResponse{},
+		DataList:       ListUserData{},
 		Forms: Forms{
 			Application: tview.NewApplication(),
 			Form:        tview.NewForm(),

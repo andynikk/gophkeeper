@@ -4,13 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gdamore/tcell/v2"
+
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/encryption"
 	"gophkeeper/internal/postgresql"
-
-	"github.com/gdamore/tcell/v2"
 )
 
+// Run Создает CLI-приложение. Создаем и заполняем основную форму с меню
+// Описываем события. События - нажате клавишь.
+// При старте приложения, создется websocket по адресу "ws://nameserver/socket".
+// Каждые две секунды идет опрос сохраненных данных на сервере.
+// Данные переносятся на клиент и хранятся в свойстве DataList структуры Client
+// На форме отображается и обновляется количество сохраненных записей в базе данных
 func (c *Client) Run() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go c.wsData(ctx, cancelFunc)
