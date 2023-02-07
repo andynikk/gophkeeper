@@ -15,6 +15,7 @@ type DBConnector struct {
 	Cfg  *environment.DBConfig
 }
 
+// NewDBConnector создание конекта с базой и установка свойств конфигурации БД
 func NewDBConnector(dbCfg *environment.DBConfig) (*DBConnector, error) {
 
 	if dbCfg.DatabaseDsn == "" {

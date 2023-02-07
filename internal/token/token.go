@@ -15,6 +15,7 @@ type Claims struct {
 	Exp        int64
 }
 
+// GenerateJWT генерация токена для пользователя
 func (c *Claims) GenerateJWT() (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
@@ -34,6 +35,7 @@ func (c *Claims) GenerateJWT() (string, error) {
 	return tokenString, nil
 }
 
+// ExtractClaims получение имя пользователя из токена
 func ExtractClaims(tokenStr string) (jwt.MapClaims, bool) {
 	hmacSecret := constants.HashKey
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
@@ -50,6 +52,7 @@ func ExtractClaims(tokenStr string) (jwt.MapClaims, bool) {
 	}
 }
 
+// NewClaims Инициализация сущности Claims
 func NewClaims(name string) *Claims {
 	return &Claims{
 		Authorized: true,

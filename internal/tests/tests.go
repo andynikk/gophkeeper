@@ -7,6 +7,7 @@ import (
 	"gophkeeper/internal/postgresql"
 )
 
+// CreateUser создание сущности User для тестов
 func CreateUser(event string) postgresql.User {
 	return postgresql.User{
 		Name:         "test",
@@ -16,6 +17,7 @@ func CreateUser(event string) postgresql.User {
 	}
 }
 
+// CreatePairLoginPassword создание сущности PairLoginPassword для тестов
 func CreatePairLoginPassword(token, event, cryptoKey string) postgresql.PairLoginPassword {
 	return postgresql.PairLoginPassword{
 		User:      token,
@@ -27,6 +29,7 @@ func CreatePairLoginPassword(token, event, cryptoKey string) postgresql.PairLogi
 	}
 }
 
+// CreateTextData создание сущности TextData для тестов
 func CreateTextData(token, event, cryptoKey string) postgresql.TextData {
 	return postgresql.TextData{
 		User:  token,
@@ -36,6 +39,7 @@ func CreateTextData(token, event, cryptoKey string) postgresql.TextData {
 	}
 }
 
+// CreateBinaryData создание сущности BinaryData для тестов
 func CreateBinaryData(token, event string) postgresql.BinaryData {
 	return postgresql.BinaryData{
 		User:          token,
@@ -49,6 +53,7 @@ func CreateBinaryData(token, event string) postgresql.BinaryData {
 	}
 }
 
+// CreateBankCard создание сущности BankCard для тестов
 func CreateBankCard(token, event, cryptoKey string) postgresql.BankCard {
 	return postgresql.BankCard{
 		User:   token,
