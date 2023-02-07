@@ -1,3 +1,4 @@
+// Package token: работа с токеном jwt
 package token
 
 import (

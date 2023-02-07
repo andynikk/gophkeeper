@@ -1,40 +1,52 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/environment"
 	"gophkeeper/internal/midware"
 	"gophkeeper/internal/postgresql"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
+
+type InListUserData map[string]postgresql.Appender
 
 type Server struct {
 	*mux.Router
 	*postgresql.DBConnector
 	*environment.ServerConfig
+
+	sync.Mutex
+	InListUserData
 }
 
+// NewServer создание сервера
 func NewServer() *Server {
 	srv := &Server{}
 
-	srv.initConfig()
-	srv.initDataBase()
-	srv.initScoringSystem()
-	srv.initRouters()
+	srv.InitConfig()
+	srv.InitDataBase()
+	srv.InitRouters()
+
+	srv.InListUserData = InListUserData{}
 
 	return srv
 }
 
 // Run Запуск сервера
 func (srv *Server) Run() {
+	ctx := context.Background()
+	go srv.SaveDataInDB(ctx)
+
 	go func() {
 		s := &http.Server{
 			Addr:    srv.Address,
@@ -51,7 +63,8 @@ func (srv *Server) Run() {
 	srv.Shutdown()
 }
 
-func (srv *Server) initRouters() {
+// InitRouters инициализация роутера. Описание middleware.
+func (srv *Server) InitRouters() {
 	r := mux.NewRouter()
 
 	var upgrader = websocket.Upgrader{
@@ -60,13 +73,13 @@ func (srv *Server) initRouters() {
 	}
 
 	r.HandleFunc("/socket", func(w http.ResponseWriter, r *http.Request) {
-
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Println(err)
+			constants.Logger.ErrorLog(err)
 			return
 		}
-		srv.wsData(conn)
+
+		srv.wsPingData(conn)
 	})
 
 	r.HandleFunc("/socket_file", func(w http.ResponseWriter, r *http.Request) {
@@ -90,10 +103,10 @@ func (srv *Server) initRouters() {
 	})
 
 	//POST
-	r.Handle("/api/user/pairs/{event}", midware.IsAuthorized(srv.apiPairsLoginPasswordPOST)).Methods("POST")
-	r.Handle("/api/user/text/{event}", midware.IsAuthorized(srv.apiTextDataPOST)).Methods("POST")
-	r.Handle("/api/user/binary/{event}", midware.IsAuthorized(srv.apiBinaryPOST)).Methods("POST")
-	r.Handle("/api/user/card/{event}", midware.IsAuthorized(srv.apiBankCardPOST)).Methods("POST")
+	r.Handle("/api/resource/pairs", midware.IsAuthorized(srv.apiPairLoginPasswordPOST)).Methods("POST")
+	r.Handle("/api/resource/text", midware.IsAuthorized(srv.apiTextDataPOST)).Methods("POST")
+	r.Handle("/api/resource/binary", midware.IsAuthorized(srv.apiBinaryPOST)).Methods("POST")
+	r.Handle("/api/resource/card", midware.IsAuthorized(srv.apiBankCardPOST)).Methods("POST")
 
 	//POST Handle Func
 	r.HandleFunc("/api/user/register", srv.apiUserRegisterPOST).Methods("POST")
@@ -105,16 +118,18 @@ func (srv *Server) initRouters() {
 	srv.Router = r
 }
 
-func (srv *Server) initDataBase() {
+// InitDataBase инициализация свойств базы данных сервера
+func (srv *Server) InitDataBase() {
 	dbc, err := postgresql.NewDBConnector(&srv.DBConfig)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
 	srv.DBConnector = dbc
-	postgresql.CreateModeLDB(srv.Pool)
+	_ = postgresql.CreateModeLDB(srv.Pool)
 }
 
-func (srv *Server) initConfig() {
+// InitConfig инициализация свойств конфигурации сервера
+func (srv *Server) InitConfig() {
 	srvConfig, err := environment.NewConfigServer()
 	if err != nil {
 		log.Fatal(err)
@@ -123,22 +138,104 @@ func (srv *Server) initConfig() {
 
 }
 
-func (srv *Server) initScoringSystem() {
-	//if !srv.DemoMode {
-	//	return
-	//}
-	//
-	//good := Goods{
-	//	"My table",
-	//	15,
-	//	"%",
-	//}
-	//srv.AddItemsScoringOrder(&good)
-	//
-	//good = Goods{
-	//	"You table",
-	//	10,
-	//	"%",
-	//}
-	//srv.AddItemsScoringOrder(&good)
+// SaveDataInDB горутина сохранения данных в БД.
+// При переброски данных на сервер данные не записываются сразу в БД.
+// Данные сохраняются в хранилище сервера InListUserData.
+// И только после этого происходит обход InListUserData, перенос данных в БД.
+// Удаление из хранилища
+func (srv *Server) SaveDataInDB(ctx context.Context) {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+
+			srv.SaveData()
+
+		}
+	}
+}
+
+// SaveData описание непосредственного сохранения данных в БД.
+func (srv *Server) SaveData() {
+	srv.Lock()
+	defer srv.Unlock()
+
+	for kType, vType := range srv.InListUserData {
+		for k, v := range vType {
+			switch kType {
+			case constants.TypePairLoginPassword.String():
+				plp := v.(*postgresql.PairLoginPassword)
+
+				if plp.Event == constants.EventDel.String() {
+					if err := srv.DBConnector.DelPairLoginPassword(plp); err != nil {
+						constants.Logger.ErrorLog(err)
+						continue
+					}
+					delete(vType, k)
+					continue
+				}
+
+				if err := srv.DBConnector.UpdatePairLoginPassword(plp); err != nil {
+					constants.Logger.ErrorLog(err)
+					continue
+				}
+				delete(vType, k)
+			case constants.TypeTextData.String():
+				td := v.(*postgresql.TextData)
+
+				if td.Event == constants.EventDel.String() {
+					if err := srv.DBConnector.DelTextData(td); err != nil {
+						constants.Logger.ErrorLog(err)
+						continue
+					}
+					delete(vType, k)
+					continue
+				}
+
+				if err := srv.DBConnector.UpdateTextData(td); err != nil {
+					constants.Logger.ErrorLog(err)
+					continue
+				}
+				delete(vType, k)
+			case constants.TypeBinaryData.String():
+				bd := v.(*postgresql.BinaryData)
+
+				if bd.Event == constants.EventDel.String() {
+					if err := srv.DBConnector.DelBinaryData(bd); err != nil {
+						constants.Logger.ErrorLog(err)
+						continue
+					}
+					delete(vType, k)
+					continue
+				}
+
+				if err := srv.DBConnector.UpdateBinaryData(bd); err != nil {
+					constants.Logger.ErrorLog(err)
+					continue
+				}
+				delete(vType, k)
+			case constants.TypeBankCardData.String():
+				bc := v.(*postgresql.BankCard)
+
+				if bc.Event == constants.EventDel.String() {
+					if err := srv.DBConnector.DelBankCard(bc); err != nil {
+						constants.Logger.ErrorLog(err)
+						continue
+					}
+					delete(vType, k)
+					continue
+				}
+
+				if err := srv.DBConnector.UpdateBankCard(bc); err != nil {
+					constants.Logger.ErrorLog(err)
+					continue
+				}
+				delete(vType, k)
+			default:
+
+			}
+		}
+	}
 }

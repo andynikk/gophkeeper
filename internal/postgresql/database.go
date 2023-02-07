@@ -1,3 +1,4 @@
+// Package postgresql: работа с базой данных
 package postgresql
 
 import (

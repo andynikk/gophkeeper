@@ -1,3 +1,4 @@
+// Package compression: упаковка/распаковка gzip
 package compression
 
 import (

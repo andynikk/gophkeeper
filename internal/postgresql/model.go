@@ -2,9 +2,9 @@ package postgresql
 
 import (
 	"context"
+	"gophkeeper/internal/token"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gophkeeper/internal/constants"
@@ -18,26 +18,20 @@ type Respondent interface {
 	GetSecondaryText(string) string
 }
 
-type MapResponse = map[uuid.UUID]Respondent
-
-type User struct {
-	Name         string `json:"login"`
-	Password     string `json:"password"`
-	HashPassword string `json:"hash_password"`
-}
-
-type PairsLoginPassword struct {
+type PairLoginPassword struct {
 	User      string `json:"user"`
 	Uid       string `json:"uid"`
 	TypePairs string `json:"type"`
 	Name      string `json:"name"`
 	Password  string `json:"password"`
+	Event     string `json:"event"`
 }
 
 type TextData struct {
-	User string `json:"user"`
-	Uid  string `json:"uid"`
-	Text string `json:"text"`
+	User  string `json:"user"`
+	Uid   string `json:"uid"`
+	Text  string `json:"text"`
+	Event string `json:"event"`
 }
 
 type PortionBinaryData struct {
@@ -54,6 +48,7 @@ type BinaryData struct {
 	Name          string `json:"name"`
 	Expansion     string `json:"expansion"`
 	Size          string `json:"size"`
+	Event         string `json:"event"`
 }
 
 type BankCard struct {
@@ -62,26 +57,59 @@ type BankCard struct {
 	Number string        `json:"patch"`
 	Date   time.Duration `json:"date,omitempty"`
 	Cvc    string        `json:"cvc"`
+	Event  string        `json:"event"`
 }
 
-type PairsLoginPasswordWithType struct {
-	Type               string
-	PairsLoginPassword []PairsLoginPassword
+type User struct {
+	Name         string `json:"login"`
+	Password     string `json:"password"`
+	HashPassword string `json:"hash_password"`
+	Event        string `json:"event"`
+}
+
+type Users struct {
+	Users []User
+}
+
+type UsersWithType struct {
+	Type  string
+	Event string
+	Value []User
+}
+
+type PairLoginPasswordWithType struct {
+	Type  string
+	Event string
+	Value []PairLoginPassword
 }
 
 type TextDataWithType struct {
 	Type     string
+	Event    string
 	TextData []TextData
 }
 
 type BinaryDataWithType struct {
 	Type       string
+	Event      string
 	BinaryData []BinaryData
 }
 
 type BankCardWithType struct {
 	Type     string
+	Event    string
 	BankCard []BankCard
+}
+
+type Appender map[string]interface{}
+
+type TypeMsg struct {
+	Type  string
+	Token string
+}
+
+type InListUserData interface {
+	SetFromInListUserData(Appender)
 }
 
 type DataList struct {
@@ -94,8 +122,13 @@ type KeyContext string
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func (p *PairsLoginPassword) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
-	rows, err := conn.Query(ctx, constants.QuerySelectOnePairsTemplate, p.User, p.Uid)
+func (p *PairLoginPassword) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
+	claims, ok := token.ExtractClaims(p.User)
+	if !ok {
+		return false, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectOnePairsTemplate, claims["user"], p.Uid)
 	if err != nil {
 		return false, errs.InvalidFormat
 	}
@@ -104,8 +137,13 @@ func (p *PairsLoginPassword) CheckExistence(ctx context.Context, conn *pgxpool.C
 	return rows.Next(), nil
 }
 
-func (p *PairsLoginPassword) Insert(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryInsertPairsTemplate, p.User, p.Uid, p.TypePairs, p.Name, p.Password)
+func (p *PairLoginPassword) Insert(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(p.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryInsertPairsTemplate, claims["user"], p.Uid, p.TypePairs, p.Name, p.Password)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -113,8 +151,13 @@ func (p *PairsLoginPassword) Insert(ctx context.Context, conn *pgxpool.Conn) err
 	return nil
 }
 
-func (p *PairsLoginPassword) Update(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryUpdatePairsTemplate, p.User, p.Uid, p.TypePairs, p.Name, p.Password)
+func (p *PairLoginPassword) Update(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(p.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryUpdatePairsTemplate, claims["user"], p.Uid, p.TypePairs, p.Name, p.Password)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -122,21 +165,33 @@ func (p *PairsLoginPassword) Update(ctx context.Context, conn *pgxpool.Conn) err
 	return nil
 }
 
-func (p *PairsLoginPassword) GetType() string {
-	return constants.TypePairsLoginPassword.String()
+func (p *PairLoginPassword) GetType() string {
+	return constants.TypePairLoginPassword.String()
 }
 
-func (p *PairsLoginPassword) GetMainText() string {
+func (p *PairLoginPassword) GetMainText() string {
 	return p.Uid
 }
 
-func (p *PairsLoginPassword) GetSecondaryText(cryptoKey string) string {
+func (p *PairLoginPassword) GetSecondaryText(cryptoKey string) string {
 	return encryption.DecryptString(p.TypePairs, cryptoKey) + ":::" +
 		encryption.DecryptString(p.Name, cryptoKey) + ":::" +
 		encryption.DecryptString(p.Password, cryptoKey)
 }
 
+func (p *PairLoginPassword) SetFromInListUserData(a Appender) {
+	a[p.Uid] = p
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (u *User) Delete(ctx context.Context, conn *pgxpool.Conn) error {
+	if _, err := conn.Exec(ctx, constants.QueryDeleteUserTemplate, u.Name, u.HashPassword); err != nil {
+		return errs.ErrErrorServer
+	}
+
+	return nil
+}
 
 func (u *User) Insert(ctx context.Context, conn *pgxpool.Conn) error {
 	if _, err := conn.Exec(ctx, constants.QueryInsertUserTemplate, u.Name, u.HashPassword); err != nil {
@@ -156,10 +211,19 @@ func (u *User) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, er
 	return rows.Next(), nil
 }
 
+func (u *User) SetFromInListUserData(a Appender) {
+	a[u.Name] = u
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (t *TextData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
-	rows, err := conn.Query(ctx, constants.QuerySelectOneTextData, t.User, t.Uid)
+	claims, ok := token.ExtractClaims(t.User)
+	if !ok {
+		return false, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectOneTextData, claims["user"], t.Uid)
 	if err != nil {
 		return false, errs.InvalidFormat
 	}
@@ -169,7 +233,12 @@ func (t *TextData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool
 }
 
 func (t *TextData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryInsertTextData, t.User, t.Uid, t.Text)
+	claims, ok := token.ExtractClaims(t.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryInsertTextData, claims["user"], t.Uid, t.Text)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -178,7 +247,12 @@ func (t *TextData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
 }
 
 func (t *TextData) Update(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryUpdateTextData, t.User, t.Uid, t.Text)
+	claims, ok := token.ExtractClaims(t.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryUpdateTextData, claims["user"], t.Uid, t.Text)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -198,10 +272,19 @@ func (t *TextData) GetSecondaryText(cryptoKey string) string {
 	return encryption.DecryptString(t.Text, cryptoKey)
 }
 
+func (t *TextData) SetFromInListUserData(a Appender) {
+	a[t.Uid] = t
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (b *BinaryData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
-	rows, err := conn.Query(ctx, constants.QuerySelectOneBinaryData, b.User, b.Uid)
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return false, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectOneBinaryData, claims["user"], b.Uid)
 	if err != nil {
 		return false, errs.InvalidFormat
 	}
@@ -211,8 +294,13 @@ func (b *BinaryData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bo
 }
 
 func (b *BinaryData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
 	_, err := conn.Exec(ctx, constants.QueryInsertBinaryData,
-		b.User, b.Uid, b.Name, b.Expansion, b.Size, b.Patch)
+		claims["user"], b.Uid, b.Name, b.Expansion, b.Size, b.Patch)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -221,7 +309,12 @@ func (b *BinaryData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
 }
 
 func (b *BinaryData) Update(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryUpdateBinaryData, b.User, b.Uid, b.Name, b.Expansion, b.Size, b.Patch)
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryUpdateBinaryData, claims["user"], b.Uid, b.Name, b.Expansion, b.Size, b.Patch)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -241,10 +334,19 @@ func (b *BinaryData) GetSecondaryText(cryptoKey string) string {
 	return b.Name + ":::" + b.Expansion + ":::" + b.Size + ":::" + b.Patch
 }
 
+func (b *BinaryData) SetFromInListUserData(a Appender) {
+	a[b.Uid] = b
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (b *BankCard) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
-	rows, err := conn.Query(ctx, constants.QuerySelectOneBankCard, b.User, b.Uid)
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return false, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectOneBankCard, claims["user"], b.Uid)
 	if err != nil {
 		return false, errs.InvalidFormat
 	}
@@ -254,7 +356,12 @@ func (b *BankCard) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool
 }
 
 func (b *BankCard) Insert(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryInsertBankCard, b.User, b.Uid, b.Number, b.Cvc)
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryInsertBankCard, claims["user"], b.Uid, b.Number, b.Cvc)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -263,7 +370,12 @@ func (b *BankCard) Insert(ctx context.Context, conn *pgxpool.Conn) error {
 }
 
 func (b *BankCard) Update(ctx context.Context, conn *pgxpool.Conn) error {
-	_, err := conn.Exec(ctx, constants.QueryUpdateBankCard, b.User, b.Uid, b.Number, b.Cvc)
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryUpdateBankCard, claims["user"], b.Uid, b.Number, b.Cvc)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -282,6 +394,10 @@ func (b *BankCard) GetMainText() string {
 func (b *BankCard) GetSecondaryText(cryptoKey string) string {
 	return encryption.DecryptString(b.Number, cryptoKey) + ":::" +
 		encryption.DecryptString(b.Cvc, cryptoKey)
+}
+
+func (b *BankCard) SetFromInListUserData(a Appender) {
+	a[b.Uid] = b
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////

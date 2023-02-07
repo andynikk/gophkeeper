@@ -1,3 +1,4 @@
+// Package encryption: шифрование/расшифровка
 package encryption
 
 import (

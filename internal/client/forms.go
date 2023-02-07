@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/rivo/tview"
 	"github.com/theplant/luhn"
 
 	"gophkeeper/internal/constants"
@@ -15,84 +14,91 @@ import (
 	"gophkeeper/internal/postgresql"
 )
 
-func (c *Client) openLoginForm() {
+// openRegisterForms отображает окно входа пользователя в систему
+func (f *Forms) openLoginForm(c *Client) {
 
 	user := postgresql.User{}
-	c.Form.AddInputField("name", "", 20, nil, func(name string) {
+	f.Form.AddInputField("name", "", 20, nil, func(name string) {
 		user.Name = name
 	})
-	c.Form.AddPasswordField("password", "", 20, ' ', func(password string) {
+	f.Form.AddPasswordField("password", "", 20, ' ', func(password string) {
 		user.Password = password
 	})
 
-	c.Form.AddButton("Login", func() {
+	f.Form.AddButton("Login", func() {
 		err := c.inputLoginUser(user)
 		if err != nil {
+			f.Form.AddTextView("", err.Error(), 100, 1, true, false)
+
 			constants.Logger.ErrorLog(err)
 			return
 		}
 
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
 
-func (c *Client) openRegisterForms() {
+// openRegisterForms отображает окно регистрации нового пользователя
+func (f *Forms) openRegisterForms(c *Client) {
 
 	user := postgresql.User{}
-	c.Form.AddInputField("name", "", 20, nil, func(name string) {
+	f.Form.AddInputField("name", "", 20, nil, func(name string) {
 		user.Name = name
 	})
-	c.Form.AddPasswordField("password", "", 20, ' ', func(password string) {
+	f.Form.AddPasswordField("password", "", 20, ' ', func(password string) {
 		user.Password = password
 	})
 
-	c.Form.AddButton("Register new user", func() {
+	f.Form.AddButton("Register new user", func() {
 		err := c.registerNewUser(user)
 		if err != nil {
+			f.Form.AddTextView("", err.Error(), 100, 1, true, false)
+
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.TextView.SetText(c.Name + "\n\n" + c.TextDefault)
-		c.Pages.SwitchToPage("Menu")
+		f.TextView.SetText(c.Name + "\n\n" + f.TextDefault)
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
 
-func (c *Client) openListForms(list *tview.List) {
+// openRegisterForms отображает окно всех данных текущего пользователя
+func (f *Forms) openListForms(c *Client) {
 
-	list.Clear()
+	f.List.Clear()
 	for k, v := range c.DataList {
 		for _, val := range v {
-			list.AddItem(k+":::"+val.MainText, val.SecondaryText, '*', nil).
+			f.List.AddItem(k+":::"+val.MainText, val.SecondaryText, '*', nil).
 				SetSelectedFunc(func(count int, mainText string, secondaryText string, rune rune) {
 					arrMainText := strings.Split(mainText, ":::")
 					switch arrMainText[0] {
-					case constants.TypePairsLoginPassword.String():
+					case constants.TypePairLoginPassword.String():
 
 						arrSecondaryText := strings.Split(secondaryText, ":::")
-						plp := postgresql.PairsLoginPassword{
+						plp := postgresql.PairLoginPassword{
 							Uid:       arrMainText[1],
 							TypePairs: arrSecondaryText[0],
 							Name:      arrSecondaryText[1],
 							Password:  arrSecondaryText[2],
 						}
-						c.openPairsLoginPasswordForms(plp)
-						c.Pages.SwitchToPage("PairsLoginPassword")
+						f.openPairLoginPasswordForms(c, plp)
+						f.Pages.SwitchToPage("PairLoginPassword")
 
 					case constants.TypeTextData.String():
 						td := postgresql.TextData{
 							Uid:  arrMainText[1],
 							Text: secondaryText,
 						}
-						c.openTextDataForms(td)
-						c.Pages.SwitchToPage("TextData")
+						f.openTextDataForms(c, td)
+						f.Pages.SwitchToPage("TextData")
 					case constants.TypeBinaryData.String():
 						arrSecondaryText := strings.Split(secondaryText, ":::")
 						bd := postgresql.BinaryData{
@@ -102,8 +108,8 @@ func (c *Client) openListForms(list *tview.List) {
 							Size:      arrSecondaryText[2],
 							Patch:     arrSecondaryText[3],
 						}
-						c.openBinaryDataForms(bd)
-						c.Pages.SwitchToPage("BinaryData")
+						f.openBinaryDataForms(c, bd)
+						f.Pages.SwitchToPage("BinaryData")
 					case constants.TypeBankCardData.String():
 						arrSecondaryText := strings.Split(secondaryText, ":::")
 						bd := postgresql.BankCard{
@@ -111,8 +117,8 @@ func (c *Client) openListForms(list *tview.List) {
 							Number: arrSecondaryText[0],
 							Cvc:    arrSecondaryText[1],
 						}
-						c.openBankCardForms(bd)
-						c.Pages.SwitchToPage("BinaryData")
+						f.openBankCardForms(c, bd)
+						f.Pages.SwitchToPage("BinaryData")
 					default:
 						return
 					}
@@ -121,110 +127,118 @@ func (c *Client) openListForms(list *tview.List) {
 	}
 }
 
-func (c *Client) openPairsLoginPasswordForms(plp postgresql.PairsLoginPassword) {
-
-	plp.User = c.Name
+// openPairLoginPasswordForms отображает окно для ввода и действий данных типа "пары логин/пароль"
+func (f *Forms) openPairLoginPasswordForms(c *Client, plp postgresql.PairLoginPassword) {
 
 	if plp.Uid == "" {
 		id := uuid.New()
 		plp.Uid = id.String()
 	}
-	c.Form.AddTextView("UID:", plp.Uid, 36, 1, true, false)
-	c.Form.AddInputField("type", plp.TypePairs, 30, nil, func(typePairs string) {
+
+	f.Form.AddTextView("UID:", plp.Uid, 36, 1, true, false)
+	f.Form.AddInputField("type", plp.TypePairs, 30, nil, func(typePairs string) {
 		plp.TypePairs = typePairs
 	})
-	c.Form.AddInputField("name", plp.Name, 30, nil, func(name string) {
+	f.Form.AddInputField("name", plp.Name, 30, nil, func(name string) {
 		plp.Name = name
 	})
-	c.Form.AddPasswordField("password", plp.Password, 30, ' ', func(password string) {
+	f.Form.AddPasswordField("password", plp.Password, 30, ' ', func(password string) {
 		plp.Password = password
 	})
 
-	c.Form.AddButton("Add/edit login/password pairs", func() {
+	f.Form.AddButton("Add/edit login/password pairs", func() {
 		plp.TypePairs = encryption.EncryptString(plp.TypePairs, c.Config.CryptoKey)
 		plp.Name = encryption.EncryptString(plp.Name, c.Config.CryptoKey)
 		plp.Password = encryption.EncryptString(plp.Password, c.Config.CryptoKey)
+		plp.Event = constants.EventAddEdit.String()
 
-		err := c.inputPairsLoginPassword(plp, "edit")
+		err := c.inputPairLoginPassword(plp)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Delete login/password pairs", func() {
+	f.Form.AddButton("Delete login/password pairs", func() {
 		plp.TypePairs = encryption.EncryptString(plp.TypePairs, c.Config.CryptoKey)
 		plp.Name = encryption.EncryptString(plp.Name, c.Config.CryptoKey)
 		plp.Password = encryption.EncryptString(plp.Password, c.Config.CryptoKey)
+		plp.Event = constants.EventDel.String()
 
-		err := c.inputPairsLoginPassword(plp, "del")
+		err := c.inputPairLoginPassword(plp)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
 
-func (c *Client) openTextDataForms(td postgresql.TextData) {
+// openTextDataForms отображает окно для ввода и действий данных типа "произвольные текстовые данные"
+func (f *Forms) openTextDataForms(c *Client, td postgresql.TextData) {
 
-	td.User = c.Name
+	td.User = c.Token
 
 	if td.Uid == "" {
 		id := uuid.New()
 		td.Uid = id.String()
 	}
 
-	c.Form.AddTextView("UID:", td.Uid, 36, 1, true, false)
-	c.Form.AddTextArea("text", td.Text, 200, 10, 15000, func(text string) {
+	f.Form.AddTextView("UID:", td.Uid, 36, 1, true, false)
+	f.Form.AddTextArea("text", td.Text, 200, 10, 15000, func(text string) {
 		td.Text = text
 	})
 
-	c.Form.AddButton("Add/edit text", func() {
-		err := c.inputTextData(td, "edit")
+	f.Form.AddButton("Add/edit text", func() {
+		td.Event = constants.EventAddEdit.String()
+
+		err := c.inputTextData(td)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Delete text", func() {
-		err := c.inputTextData(td, "del")
+	f.Form.AddButton("Delete text", func() {
+		td.Event = constants.EventDel.String()
+
+		err := c.inputTextData(td)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
 
-func (c *Client) openBinaryDataForms(bd postgresql.BinaryData) {
+// openBinaryDataForms отображает окно для ввода и действий данных типа "произвольные бинарные данные"
+func (f *Forms) openBinaryDataForms(c *Client, bd postgresql.BinaryData) {
 
-	bd.User = c.Name
+	bd.User = c.Token
 
 	if bd.Uid == "" {
 		id := uuid.New()
 		bd.Uid = id.String()
 	}
 
-	c.Form.AddTextView("UID:", bd.Uid, 36, 1, true, false)
-	c.Form.AddInputField("Patch:", bd.Patch, 200, nil, func(patch string) {
+	f.Form.AddTextView("UID:", bd.Uid, 36, 1, true, false)
+	f.Form.AddInputField("Patch:", bd.Patch, 200, nil, func(patch string) {
 		bd.Patch = patch
 	})
-	c.Form.AddInputField("Download patch:", bd.Patch, 200, nil, func(patch string) {
+	f.Form.AddInputField("Download patch:", bd.Patch, 200, nil, func(patch string) {
 		bd.DownloadPatch = patch
 	})
-	c.Form.AddTextView("Name:", bd.Name, 50, 1, true, false)
-	c.Form.AddTextView("Expansion:", bd.Expansion, 50, 1, true, false)
-	c.Form.AddTextView("Size:", fmt.Sprintf("%v", bd.Size), 50, 1, true, false)
+	f.Form.AddTextView("Name:", bd.Name, 50, 1, true, false)
+	f.Form.AddTextView("Expansion:", bd.Expansion, 50, 1, true, false)
+	f.Form.AddTextView("Size:", fmt.Sprintf("%v", bd.Size), 50, 1, true, false)
 
-	c.Form.AddButton("Upload binary", func() {
+	f.Form.AddButton("Upload binary", func() {
 		if bd.Patch == "" {
 			fmt.Println("не указан путь к файлу")
 			return
@@ -237,15 +251,16 @@ func (c *Client) openBinaryDataForms(bd postgresql.BinaryData) {
 		bd.Name = fileInfo.Name()
 		bd.Expansion = "pdf"
 		bd.Size = fmt.Sprintf("%d", fileInfo.Size())
+		bd.Event = constants.EventAddEdit.String()
 
-		err = c.inputBinaryData(bd, "edit")
+		err = c.inputBinaryData(bd)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Download binary", func() {
+	f.Form.AddButton("Download binary", func() {
 		if bd.DownloadPatch == "" {
 			fmt.Println("не указан путь к файлу")
 			return
@@ -256,89 +271,95 @@ func (c *Client) openBinaryDataForms(bd postgresql.BinaryData) {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Delete binary", func() {
-		err := c.inputBinaryData(bd, "del")
+	f.Form.AddButton("Delete binary", func() {
+		bd.Event = constants.EventDel.String()
+
+		err := c.inputBinaryData(bd)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
 
-func (c *Client) openBankCardForms(bc postgresql.BankCard) {
+// openBankCardForms отображает окно для ввода и действий данных типа "данные банковских карт"
+func (f *Forms) openBankCardForms(c *Client, bc postgresql.BankCard) {
 
-	bc.User = c.Name
+	bc.User = c.Token
 
 	if bc.Uid == "" {
 		id := uuid.New()
 		bc.Uid = id.String()
 	}
 
-	c.Form.AddTextView("UID:", bc.Uid, 36, 1, true, false)
-	c.Form.AddInputField("Number:", bc.Number, 30, nil, func(number string) {
+	f.Form.AddTextView("UID:", bc.Uid, 36, 1, true, false)
+	f.Form.AddInputField("Number:", bc.Number, 30, nil, func(number string) {
 		bc.Number = number
 	})
-	c.Form.AddInputField("CVC", bc.Cvc, 30, nil, func(cvc string) {
+	f.Form.AddInputField("CVC", bc.Cvc, 30, nil, func(cvc string) {
 		bc.Cvc = cvc
 	})
 
-	c.Form.AddButton("Add/edit bank card", func() {
+	f.Form.AddButton("Add/edit bank card", func() {
 		numCard, err := strconv.Atoi(bc.Number)
 		if !luhn.Valid(numCard) {
 			constants.Logger.ErrorLog(err)
 			return
 		}
 
-		err = c.inputBankCard(bc, "edit")
+		bc.Event = constants.EventAddEdit.String()
+		err = c.inputBankCard(bc)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Delete binary", func() {
-		err := c.inputBankCard(bc, "del")
+	f.Form.AddButton("Delete binary", func() {
+		bc.Event = constants.EventDel.String()
+		err := c.inputBankCard(bc)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
 
-func (c *Client) openEncryptionKeyForms(k encryption.KeyRSA) {
+// openEncryptionKeyForms отображает окно для ввода информации для формирования ключа для шифровки данных
+func (f *Forms) openEncryptionKeyForms(c *Client, k encryption.KeyRSA) {
 
-	k.User = c.Name
+	k.User = c.Token
 
-	c.Form.AddTextArea("Key:", k.Key, 200, 10, 15000, func(key string) {
+	f.Form.AddTextArea("Key:", k.Key, 200, 10, 15000, func(key string) {
 		k.Key = key
 	})
-	c.Form.AddInputField("Patch:", k.Patch, 100, nil, func(patch string) {
+	f.Form.AddInputField("Patch:", k.Patch, 100, nil, func(patch string) {
 		k.Patch = patch
 	})
 
-	c.Form.AddButton("Create key", func() {
+	f.Form.AddButton("Create key", func() {
 		if k.Patch == "" {
 			fmt.Println("Не указан путь к файлу")
 			return
 		}
-		err := c.creteEncryptionKey(k)
+		err := c.createEncryptionKey(k)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 			return
 		}
-		c.Pages.SwitchToPage("Menu")
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
-	c.Form.AddButton("Cancel", func() {
-		c.Pages.SwitchToPage("Menu")
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }

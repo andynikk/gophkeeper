@@ -1,3 +1,4 @@
+// Package midware: middleware сервера. Проверка на аутетификацию
 package midware
 
 import (

@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"gophkeeper/internal/token"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -35,7 +36,46 @@ func (dbc *DBConnector) NewAccount(user *User) error {
 	return nil
 }
 
-func (dbc *DBConnector) PairsLoginPassword(plp *PairsLoginPassword) error {
+func (dbc *DBConnector) GetAccount(user User) error {
+
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
+	recordExists, err := user.CheckExistence(ctx, conn)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	if recordExists {
+		return nil
+
+	}
+	conn.Release()
+
+	return errs.ErrInvalidLoginPassword
+}
+
+func (dbc *DBConnector) DelAccount(user *User) error {
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	err = user.Delete(ctx, conn)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+
+	return nil
+}
+
+func (dbc *DBConnector) UpdatePairLoginPassword(plp *PairLoginPassword) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
@@ -61,7 +101,36 @@ func (dbc *DBConnector) PairsLoginPassword(plp *PairsLoginPassword) error {
 	return nil
 }
 
-func (dbc *DBConnector) DelPairsLoginPassword(plp *PairsLoginPassword) error {
+func (dbc *DBConnector) SelectPairLoginPassword(ctx context.Context) ([]PairLoginPassword, error) {
+
+	user := ctx.Value(KeyContext("user"))
+	rows, err := dbc.Pool.Query(ctx, constants.QuerySelectPairsTemplate, user)
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	var arrPlp []PairLoginPassword
+	for rows.Next() {
+		var plp PairLoginPassword
+
+		err = rows.Scan(&plp.User, &plp.Uid, &plp.TypePairs, &plp.Name, &plp.Password)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+		arrPlp = append(arrPlp, plp)
+	}
+
+	return arrPlp, nil
+}
+
+func (dbc *DBConnector) DelPairLoginPassword(plp *PairLoginPassword) error {
+	claims, ok := token.ExtractClaims(plp.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
@@ -69,14 +138,14 @@ func (dbc *DBConnector) DelPairsLoginPassword(plp *PairsLoginPassword) error {
 	}
 	defer conn.Release()
 
-	_, err = conn.Exec(ctx, constants.QueryDelOnePairsTemplate, plp.User, plp.Uid)
+	_, err = conn.Exec(ctx, constants.QueryDelOnePairsTemplate, claims["user"], plp.Uid)
 	if err != nil {
 		return errs.InvalidFormat
 	}
 	return nil
 }
 
-func (dbc *DBConnector) TextData(td *TextData) error {
+func (dbc *DBConnector) UpdateTextData(td *TextData) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
@@ -100,161 +169,6 @@ func (dbc *DBConnector) TextData(td *TextData) error {
 	}
 
 	return nil
-}
-
-func (dbc *DBConnector) DelTextData(td *TextData) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	_, err = conn.Exec(ctx, constants.QueryDelOneTextDataTemplate, td.User, td.Uid)
-	if err != nil {
-		return errs.InvalidFormat
-	}
-	return nil
-}
-
-func (dbc *DBConnector) BankCard(bc *BankCard) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	recordExists, err := bc.CheckExistence(ctx, conn)
-	if err != nil {
-		return errs.InvalidFormat
-	}
-	if recordExists {
-		if err = bc.Update(ctx, conn); err != nil {
-			return errs.InvalidFormat
-		}
-		return nil
-	}
-
-	if err = bc.Insert(ctx, conn); err != nil {
-		return errs.InvalidFormat
-	}
-
-	return nil
-}
-
-func (dbc *DBConnector) DelBankCard(bc *BankCard) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	_, err = conn.Exec(ctx, constants.QueryDelOneBankCardTemplate, bc.User, bc.Uid)
-	if err != nil {
-		return errs.InvalidFormat
-	}
-	return nil
-}
-
-func (dbc *DBConnector) BinaryData(bd *BinaryData) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	recordExists, err := bd.CheckExistence(ctx, conn)
-	if err != nil {
-		return errs.InvalidFormat
-	}
-	if recordExists {
-		if err = bd.Update(ctx, conn); err != nil {
-			return errs.InvalidFormat
-		}
-		return nil
-	}
-	if err = bd.Insert(ctx, conn); err != nil {
-		return errs.InvalidFormat
-	}
-
-	return nil
-}
-
-func (dbc *DBConnector) DelBinaryData(bd *BinaryData) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	tx, err := conn.Begin(ctx)
-	_, err = conn.Exec(ctx, constants.QueryDelOneBinaryDataTemplate, bd.User, bd.Uid)
-	if err != nil {
-		tx.Rollback(ctx)
-		return errs.InvalidFormat
-	}
-	_, err = conn.Exec(ctx, constants.QueryDelPortionsBinaryData, bd.Uid)
-	if err != nil {
-		tx.Rollback(ctx)
-		return errs.InvalidFormat
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		constants.Logger.ErrorLog(err)
-		return errs.ErrErrorServer
-	}
-	return nil
-}
-
-func (dbc *DBConnector) GetAccount(user User) error {
-
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
-	recordExists, err := user.CheckExistence(ctx, conn)
-	if err != nil {
-		return errs.InvalidFormat
-	}
-	if recordExists {
-		return nil
-
-	}
-	conn.Release()
-
-	return errs.ErrInvalidLoginPassword
-}
-
-func (dbc *DBConnector) SelectPairsLoginPassword(ctx context.Context) ([]PairsLoginPassword, error) {
-
-	user := ctx.Value(KeyContext("user"))
-	rows, err := dbc.Pool.Query(ctx, constants.QuerySelectPairsTemplate, user)
-	if err != nil {
-		return nil, errs.InvalidFormat
-	}
-	defer rows.Close()
-
-	var arrPlp []PairsLoginPassword
-	for rows.Next() {
-		var plp PairsLoginPassword
-
-		err = rows.Scan(&plp.User, &plp.Uid, &plp.TypePairs, &plp.Name, &plp.Password)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		arrPlp = append(arrPlp, plp)
-	}
-
-	return arrPlp, nil
 }
 
 func (dbc *DBConnector) SelectTextData(ctx context.Context) ([]TextData, error) {
@@ -282,28 +196,50 @@ func (dbc *DBConnector) SelectTextData(ctx context.Context) ([]TextData, error) 
 	return arrTd, nil
 }
 
-func (dbc *DBConnector) SelectBinaryData(ctx context.Context) ([]BinaryData, error) {
+func (dbc *DBConnector) DelTextData(td *TextData) error {
+	claims, ok := token.ExtractClaims(td.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
 
-	user := ctx.Value(KeyContext("user"))
-	rows, err := dbc.Pool.Query(ctx, constants.QuerySelectBinaryData, user)
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
-		return nil, errs.InvalidFormat
+		return errs.ErrErrorServer
 	}
-	defer rows.Close()
+	defer conn.Release()
 
-	var arrBd []BinaryData
-	for rows.Next() {
-		var bd BinaryData
+	_, err = conn.Exec(ctx, constants.QueryDelOneTextDataTemplate, claims["user"], td.Uid)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	return nil
+}
 
-		err = rows.Scan(&bd.User, &bd.Uid, &bd.Name, &bd.Expansion, &bd.Size, &bd.Patch)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
+func (dbc *DBConnector) UpdateBankCard(bc *BankCard) error {
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	recordExists, err := bc.CheckExistence(ctx, conn)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	if recordExists {
+		if err = bc.Update(ctx, conn); err != nil {
+			return errs.InvalidFormat
 		}
-		arrBd = append(arrBd, bd)
+		return nil
 	}
 
-	return arrBd, nil
+	if err = bc.Insert(ctx, conn); err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
 }
 
 func (dbc *DBConnector) SelectBankCard(ctx context.Context) ([]BankCard, error) {
@@ -330,6 +266,107 @@ func (dbc *DBConnector) SelectBankCard(ctx context.Context) ([]BankCard, error) 
 	return arrBc, nil
 }
 
+func (dbc *DBConnector) DelBankCard(bc *BankCard) error {
+	claims, ok := token.ExtractClaims(bc.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(ctx, constants.QueryDelOneBankCardTemplate, claims["user"], bc.Uid)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	return nil
+}
+
+func (dbc *DBConnector) UpdateBinaryData(bd *BinaryData) error {
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	recordExists, err := bd.CheckExistence(ctx, conn)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	if recordExists {
+		if err = bd.Update(ctx, conn); err != nil {
+			return errs.InvalidFormat
+		}
+		return nil
+	}
+	if err = bd.Insert(ctx, conn); err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
+func (dbc *DBConnector) SelectBinaryData(ctx context.Context) ([]BinaryData, error) {
+
+	user := ctx.Value(KeyContext("user"))
+	rows, err := dbc.Pool.Query(ctx, constants.QuerySelectBinaryData, user)
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	var arrBd []BinaryData
+	for rows.Next() {
+		var bd BinaryData
+
+		err = rows.Scan(&bd.User, &bd.Uid, &bd.Name, &bd.Expansion, &bd.Size, &bd.Patch)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+		arrBd = append(arrBd, bd)
+	}
+
+	return arrBd, nil
+}
+
+func (dbc *DBConnector) DelBinaryData(bd *BinaryData) error {
+	claims, ok := token.ExtractClaims(bd.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
+	_, err = conn.Exec(ctx, constants.QueryDelOneBinaryDataTemplate, claims["user"], bd.Uid)
+	if err != nil {
+		tx.Rollback(ctx)
+		return errs.InvalidFormat
+	}
+	_, err = conn.Exec(ctx, constants.QueryDelPortionsBinaryData, bd.Uid)
+	if err != nil {
+		tx.Rollback(ctx)
+		return errs.InvalidFormat
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		constants.Logger.ErrorLog(err)
+		return errs.ErrErrorServer
+	}
+	return nil
+}
+
 func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]PortionBinaryData, error) {
 
 	uid := ctx.Value(KeyContext("uid"))
@@ -354,16 +391,16 @@ func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]PortionB
 	return arrPbd, nil
 }
 
-func CreateModeLDB(Pool *pgxpool.Pool) {
+func CreateModeLDB(Pool *pgxpool.Pool) error {
 	ctx := context.Background()
 	conn, err := Pool.Acquire(ctx)
 	if err != nil {
-		return
+		return err
 	}
 
 	if _, err = Pool.Exec(ctx, `CREATE SCHEMA IF NOT EXISTS gophkeeper`); err != nil {
 		constants.Logger.ErrorLog(err)
-		return
+		return err
 	}
 
 	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."Users"
@@ -379,10 +416,10 @@ func CreateModeLDB(Pool *pgxpool.Pool) {
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 		conn.Release()
-		return
+		return err
 	}
 
-	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."PairsLoginPassword"
+	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."PairLoginPassword"
 								(
 									"User" character varying(150) COLLATE pg_catalog."default" NOT NULL,
 									"TypePairs" character varying(150) COLLATE pg_catalog."default",
@@ -393,13 +430,13 @@ func CreateModeLDB(Pool *pgxpool.Pool) {
 								
 								TABLESPACE pg_default;
 								
-								ALTER TABLE IF EXISTS gophkeeper."PairsLoginPassword"
+								ALTER TABLE IF EXISTS gophkeeper."PairLoginPassword"
 									OWNER to postgres;`)
 
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 		conn.Release()
-		return
+		return err
 	}
 
 	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."Text"
@@ -416,7 +453,7 @@ func CreateModeLDB(Pool *pgxpool.Pool) {
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 		conn.Release()
-		return
+		return err
 	}
 
 	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."Files"
@@ -438,7 +475,7 @@ func CreateModeLDB(Pool *pgxpool.Pool) {
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 		conn.Release()
-		return
+		return err
 	}
 
 	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."PortionsFiles"
@@ -455,7 +492,7 @@ func CreateModeLDB(Pool *pgxpool.Pool) {
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 		conn.Release()
-		return
+		return err
 	}
 
 	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."BankCards"
@@ -474,6 +511,8 @@ func CreateModeLDB(Pool *pgxpool.Pool) {
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 		conn.Release()
-		return
+		return err
 	}
+
+	return nil
 }

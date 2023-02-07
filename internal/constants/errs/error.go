@@ -1,3 +1,4 @@
+// Package errs: кастомные ошибки
 package errs
 
 import (
