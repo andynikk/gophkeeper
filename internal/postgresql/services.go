@@ -110,7 +110,7 @@ func (dbc *DBConnector) DelTextData(td *TextData) error {
 	}
 	defer conn.Release()
 
-	_, err = conn.Exec(ctx, constants.QueryDelOneBankCardTemplate, td.User, td.Uid)
+	_, err = conn.Exec(ctx, constants.QueryDelOneTextDataTemplate, td.User, td.Uid)
 	if err != nil {
 		return errs.InvalidFormat
 	}

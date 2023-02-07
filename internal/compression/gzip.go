@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io"
-	"strings"
 )
 
+// Compress сжимает данные (тип []byte) в gzip.
+// Возвращает сжатый []byte и ошибку.
 func Compress(data []byte) ([]byte, error) {
 
 	var valByte bytes.Buffer
@@ -21,6 +21,8 @@ func Compress(data []byte) ([]byte, error) {
 	return valByte.Bytes(), nil
 }
 
+// Decompress разархивирует данные из архива gzip.
+// Возвращает разархивированный массив байт ([]byte) и ошибку.
 func Decompress(data []byte) ([]byte, error) {
 	reader, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -34,21 +36,4 @@ func Decompress(data []byte) ([]byte, error) {
 	}
 
 	return valByte.Bytes(), nil
-}
-
-func DecompressBody(contentEncoding string, body io.Reader) error {
-	var arrBody []byte
-	if strings.Contains(contentEncoding, "gzip") {
-		bytBody, err := io.ReadAll(body)
-		if err != nil {
-			return err
-		}
-		arrBody, err = Decompress(bytBody)
-		if err != nil {
-			return err
-		}
-
-		body = bytes.NewReader(arrBody)
-	}
-	return nil
 }

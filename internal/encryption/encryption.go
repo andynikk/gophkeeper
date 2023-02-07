@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"io"
@@ -18,12 +17,7 @@ type KeyRSA struct {
 	Key   string
 }
 
-type KeyEncryption struct {
-	TypeEncryption string
-	PublicKey      *rsa.PublicKey
-	PrivateKey     *rsa.PrivateKey
-}
-
+// DecryptString дешифрует строку. Использует текстовый ключ. Если возникает ошибка, то возвращает изночальную строку
 func DecryptString(cryptoText string, keyString string) string {
 
 	if keyString == "" {
@@ -49,6 +43,7 @@ func DecryptString(cryptoText string, keyString string) string {
 	return string(decrypted)
 }
 
+// EncryptString шифрует строку. Использует текстовый ключ. Если возникает ошибка, то возвращает изночальную строку
 func EncryptString(plainText string, keyString string) string {
 
 	if keyString == "" {

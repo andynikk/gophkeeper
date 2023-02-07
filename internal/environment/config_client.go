@@ -10,23 +10,20 @@ import (
 	"gophkeeper/internal/constants"
 )
 
-type ClientConfigENV struct {
-	Address   string `env:"ADDRESS" envDefault:"localhost:8080"`
-	Key       string `env:"KEY"`
-	CryptoKey string `env:"CRYPTO_KEY"`
-}
-
+// ClientConfig структура хранения свойств конфигурации клиента
 type ClientConfig struct {
 	Address   string
 	Key       string
 	CryptoKey string
 }
 
-type ClientConfigFile struct {
-	Address   string `json:"address"`
-	CryptoKey string `json:"crypto_key"`
+type clientConfigENV struct {
+	Address   string `env:"ADDRESS" envDefault:"localhost:8080"`
+	Key       string `env:"KEY"`
+	CryptoKey string `env:"CRYPTO_KEY"`
 }
 
+// InitConfigAgent Инициализация и заполнения свойств структуры конфигурации клиента
 func InitConfigAgent() *ClientConfig {
 	configAgent := ClientConfig{}
 	configAgent.InitConfigAgentENV()
@@ -35,9 +32,10 @@ func InitConfigAgent() *ClientConfig {
 	return &configAgent
 }
 
+// InitConfigAgentENV Инициализация и заполнения свойств структуры конфигурации клиента из параметров системы
 func (c *ClientConfig) InitConfigAgentENV() {
 
-	var cfgENV ClientConfigENV
+	var cfgENV clientConfigENV
 	err := env.Parse(&cfgENV)
 	if err != nil {
 		log.Fatal(err)
@@ -71,6 +69,7 @@ func (c *ClientConfig) InitConfigAgentENV() {
 	}
 }
 
+// InitConfigAgentFlag Инициализация и заполнения свойств структуры конфигурации клиента из ключей запуска программы
 func (c *ClientConfig) InitConfigAgentFlag() {
 
 	addressPtr := flag.String("a", "", "имя сервера")

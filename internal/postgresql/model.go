@@ -84,7 +84,7 @@ type BankCardWithType struct {
 	BankCard []BankCard
 }
 
-type Response struct {
+type DataList struct {
 	TypeResponse  string `json:"type"`
 	MainText      string `json:"main_text"`
 	SecondaryText string `json:"secondary_text"`

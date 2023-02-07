@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"gophkeeper/internal/constants/errs"
 	"io"
 	"net/http"
 	"strings"
@@ -14,38 +15,18 @@ import (
 	"gophkeeper/internal/token"
 )
 
-func (srv *Server) HandlerNotFound(rw http.ResponseWriter, r *http.Request) {
+func (srv *Server) handlerNotFound(rw http.ResponseWriter, r *http.Request) {
 	http.Error(rw, "Page "+r.URL.Path+" not found", http.StatusNotFound)
 }
 
-func (srv *Server) HandleFunc(rw http.ResponseWriter, rq *http.Request) {
+func (srv *Server) handleFunc(rw http.ResponseWriter, rq *http.Request) {
 
-	//content := srv.StartPage()
-	//
-	//acceptEncoding := rq.Header.Get("Accept-Encoding")
-	//
-	//metricsHTML := []byte(content)
-	//byteMterics := bytes.NewBuffer(metricsHTML).Bytes()
-	//compData, err := compression.Compress(byteMterics)
-	//if err != nil {
-	//	constants.Logger.ErrorLog(err)
-	//}
-	//
-	//var bodyBate []byte
-	//if strings.Contains(acceptEncoding, "gzip") {
-	//	rw.Header().Add("Content-Encoding", "gzip")
-	//	bodyBate = compData
-	//} else {
-	//	bodyBate = metricsHTML
-	//}
-	//
-	//rw.Header().Add("Content-Type", "text/html")
-	//if _, err := rw.Write(bodyBate); err != nil {
-	//	constants.Logger.ErrorLog(err)
-	//	return
-	//}
+	if _, err := rw.Write([]byte("Start page")); err != nil {
+		constants.Logger.ErrorLog(err)
+		return
+	}
 
-	//rw.WriteHeader(http.StatusOK)
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +59,7 @@ func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 	err = srv.DBConnector.NewAccount(&user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
-		http.Error(w, err.Error(), HTTPErrors(err))
+		http.Error(w, err.Error(), errs.HTTPErrors(err))
 		return
 	}
 
@@ -124,7 +105,7 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 	err = srv.DBConnector.GetAccount(user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
-		http.Error(w, err.Error(), HTTPErrors(err))
+		http.Error(w, err.Error(), errs.HTTPErrors(err))
 		return
 	}
 
@@ -168,14 +149,14 @@ func (srv *Server) apiPairsLoginPasswordPOST(w http.ResponseWriter, r *http.Requ
 	if event == constants.EventDel.String() {
 		if err := srv.DBConnector.DelPairsLoginPassword(&plp); err != nil {
 			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), HTTPErrors(err))
+			http.Error(w, err.Error(), errs.HTTPErrors(err))
 		}
 		return
 	}
 
 	if err := srv.DBConnector.PairsLoginPassword(&plp); err != nil {
 		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), HTTPErrors(err))
+		http.Error(w, err.Error(), errs.HTTPErrors(err))
 		return
 	}
 
@@ -210,14 +191,14 @@ func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
 	if event == constants.EventDel.String() {
 		if err := srv.DBConnector.DelTextData(&td); err != nil {
 			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), HTTPErrors(err))
+			http.Error(w, err.Error(), errs.HTTPErrors(err))
 		}
 		return
 	}
 
 	if err := srv.DBConnector.TextData(&td); err != nil {
 		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), HTTPErrors(err))
+		http.Error(w, err.Error(), errs.HTTPErrors(err))
 		return
 	}
 
@@ -252,14 +233,14 @@ func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
 	if event == constants.EventDel.String() {
 		if err := srv.DBConnector.DelBinaryData(&bd); err != nil {
 			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), HTTPErrors(err))
+			http.Error(w, err.Error(), errs.HTTPErrors(err))
 		}
 		return
 	}
 
 	if err := srv.DBConnector.BinaryData(&bd); err != nil {
 		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), HTTPErrors(err))
+		http.Error(w, err.Error(), errs.HTTPErrors(err))
 		return
 	}
 
@@ -294,20 +275,21 @@ func (srv *Server) apiBankCardPOST(w http.ResponseWriter, r *http.Request) {
 	if event == constants.EventDel.String() {
 		if err := srv.DBConnector.DelBankCard(&bc); err != nil {
 			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), HTTPErrors(err))
+			http.Error(w, err.Error(), errs.HTTPErrors(err))
 		}
 		return
 	}
 
 	if err := srv.DBConnector.BankCard(&bc); err != nil {
 		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), HTTPErrors(err))
+		http.Error(w, err.Error(), errs.HTTPErrors(err))
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
+// Shutdown функция отключенния сервера
 func (srv *Server) Shutdown() {
 	constants.Logger.InfoLog("server stopped")
 }

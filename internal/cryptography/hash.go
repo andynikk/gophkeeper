@@ -8,6 +8,7 @@ import (
 	"gophkeeper/internal/constants"
 )
 
+// HashSHA256 хеширует строку. Использует ключ. Ключ по умолчанию constants.HashKey
 func HashSHA256(data string, strKey string) (hash string) {
 
 	if strKey == "" {

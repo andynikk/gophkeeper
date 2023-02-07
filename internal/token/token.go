@@ -27,6 +27,7 @@ func (c *Claims) GenerateJWT() (string, error) {
 
 	if err != nil {
 		constants.Logger.ErrorLog(err)
+		return "", err
 	}
 
 	return tokenString, nil

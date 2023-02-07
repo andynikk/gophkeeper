@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -12,13 +11,10 @@ import (
 	"github.com/gorilla/websocket"
 
 	"gophkeeper/internal/constants"
-	"gophkeeper/internal/constants/errs"
 	"gophkeeper/internal/environment"
 	"gophkeeper/internal/midware"
 	"gophkeeper/internal/postgresql"
 )
-
-type MapResponse map[string][]postgresql.Response
 
 type Server struct {
 	*mux.Router
@@ -26,17 +22,18 @@ type Server struct {
 	*environment.ServerConfig
 }
 
-func NewByConfig() *Server {
+func NewServer() *Server {
 	srv := &Server{}
 
-	srv.initDataBase()
 	srv.initConfig()
+	srv.initDataBase()
 	srv.initScoringSystem()
 	srv.initRouters()
 
 	return srv
 }
 
+// Run Запуск сервера
 func (srv *Server) Run() {
 	go func() {
 		s := &http.Server{
@@ -102,14 +99,14 @@ func (srv *Server) initRouters() {
 	r.HandleFunc("/api/user/register", srv.apiUserRegisterPOST).Methods("POST")
 	r.HandleFunc("/api/user/login", srv.apiUserLoginPOST).Methods("POST")
 
-	r.HandleFunc("/", srv.HandleFunc).Methods("GET")
+	r.HandleFunc("/", srv.handleFunc).Methods("GET")
 
-	r.NotFoundHandler = http.HandlerFunc(srv.HandlerNotFound)
+	r.NotFoundHandler = http.HandlerFunc(srv.handlerNotFound)
 	srv.Router = r
 }
 
 func (srv *Server) initDataBase() {
-	dbc, err := postgresql.NewDBConnector()
+	dbc, err := postgresql.NewDBConnector(&srv.DBConfig)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
@@ -144,38 +141,4 @@ func (srv *Server) initScoringSystem() {
 	//	"%",
 	//}
 	//srv.AddItemsScoringOrder(&good)
-}
-
-func HTTPErrors(err error) int {
-
-	HTTPAnswer := http.StatusOK
-
-	if errors.Is(err, errs.InvalidFormat) {
-		HTTPAnswer = http.StatusBadRequest //400
-	} else if errors.Is(err, errs.ErrLoginBusy) {
-		HTTPAnswer = http.StatusConflict //409
-	} else if errors.Is(err, errs.ErrErrorServer) {
-		HTTPAnswer = http.StatusInternalServerError //500
-	} else if errors.Is(err, errs.ErrInvalidLoginPassword) {
-		HTTPAnswer = http.StatusUnauthorized //401
-	} else if errors.Is(err, errs.ErrUserNotAuthenticated) {
-		HTTPAnswer = http.StatusUnauthorized //401
-	} else if errors.Is(err, errs.ErrAccepted) {
-		HTTPAnswer = http.StatusAccepted //202
-	} else if errors.Is(err, errs.ErrUploadedAnotherUser) {
-		HTTPAnswer = http.StatusConflict //409
-	} else if errors.Is(err, errs.ErrInvalidOrderNumber) {
-		HTTPAnswer = http.StatusUnprocessableEntity //422
-	} else if errors.Is(err, errs.ErrInsufficientFunds) {
-		HTTPAnswer = http.StatusPaymentRequired //402
-	} else if errors.Is(err, errs.ErrNoContent) {
-		HTTPAnswer = http.StatusNoContent //204
-	} else if errors.Is(err, errs.ErrConflict) {
-		HTTPAnswer = http.StatusConflict //409
-	} else if errors.Is(err, errs.ErrTooManyRequests) {
-		HTTPAnswer = http.StatusTooManyRequests //429
-	} else if errors.Is(err, errs.OrderUpload) {
-		HTTPAnswer = http.StatusOK //200
-	}
-	return HTTPAnswer
 }
