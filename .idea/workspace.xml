@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0003">
-      <change beforePath="$PROJECT_DIR$/internal/cryptography/hash.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/cryptography/hash.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/postgresql/model.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/model.go" afterDir="false" />
+    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0005">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ReadMe.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ReadMe.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,21 +51,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.format.on.save.advertiser.fired": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "go.import.settings.migrated": "true",
-    "last_opened_file_path": "E:/Bases/Go/Backup/gophkeeper_2023-02-07",
-    "nodejs_package_manager_path": "npm"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.format.on.save.advertiser.fired&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;E:/Bases/Go/Backup/gophkeeper_2023-02-07&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Go Build.Server">
     <configuration name="Client" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="gophkeeper" />
@@ -84,6 +84,14 @@
       <working_directory value="$PROJECT_DIR$" />
       <kind value="PACKAGE" />
       <package value="gophkeeper/cmd/server" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="gophkeeper" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$" />
       <method v="2" />
@@ -122,6 +130,15 @@
       <filePath value="$PROJECT_DIR$" />
       <framework value="gotest" />
       <pattern value="^\QTestFuncClient\E$" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="GoTestRunConfiguration" factoryName="Go Test">
+      <module name="gophkeeper" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="DIRECTORY" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
       <method v="2" />
     </configuration>
     <configuration name="go test gophkeeper/cmd/client" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -175,7 +192,8 @@
       <updated>1674651512234</updated>
       <workItem from="1674651513995" duration="153071000" />
       <workItem from="1675002648102" duration="4276000" />
-      <workItem from="1675007337576" duration="207524000" />
+      <workItem from="1675007337576" duration="208165000" />
+      <workItem from="1675861759749" duration="2525000" />
     </task>
     <task id="LOCAL-00001" summary="v0.001">
       <created>1674894125209</created>
@@ -233,7 +251,21 @@
       <option name="project" value="LOCAL" />
       <updated>1675843760901</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="review 1. 0004">
+      <created>1675845034100</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1675845034100</updated>
+    </task>
+    <task id="LOCAL-00010" summary="review 1. 0005">
+      <created>1675861814847</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1675861814847</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -258,7 +290,9 @@
     <MESSAGE value="review 1. 0001" />
     <MESSAGE value="review 1. 0002" />
     <MESSAGE value="review 1. 0003" />
-    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0003" />
+    <MESSAGE value="review 1. 0004" />
+    <MESSAGE value="review 1. 0005" />
+    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0005" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
