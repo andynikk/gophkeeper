@@ -11,6 +11,10 @@ import (
 	"gophkeeper/internal/cryptography"
 )
 
+// NewAccount метод для создания нового экаунта из ДБ конектора
+// вызывает методы объекта user.
+// Проверяет есть ли такой пользователь.
+// Если нет, то создает
 func (dbc *DBConnector) NewAccount(user *User) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -36,7 +40,8 @@ func (dbc *DBConnector) NewAccount(user *User) error {
 	return nil
 }
 
-func (dbc *DBConnector) GetAccount(user User) error {
+// CheckAccount проверяет, по имени и хешированному паролю существует ли пользователь в базе
+func (dbc *DBConnector) CheckAccount(user User) error {
 
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -59,6 +64,7 @@ func (dbc *DBConnector) GetAccount(user User) error {
 	return errs.ErrInvalidLoginPassword
 }
 
+// DelAccount удаляет пользователя по имени и хешированному паролю
 func (dbc *DBConnector) DelAccount(user *User) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -75,6 +81,8 @@ func (dbc *DBConnector) DelAccount(user *User) error {
 	return nil
 }
 
+// UpdatePairLoginPassword обновляет пару пользователь/пароль.
+// Ищет по пользователю и УИДу, если не находи создате новый. Если находит обновляет найденный
 func (dbc *DBConnector) UpdatePairLoginPassword(plp *PairLoginPassword) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -101,6 +109,7 @@ func (dbc *DBConnector) UpdatePairLoginPassword(plp *PairLoginPassword) error {
 	return nil
 }
 
+// SelectPairLoginPassword одбирает все пары пользователь/пароль по пользователю.
 func (dbc *DBConnector) SelectPairLoginPassword(ctx context.Context) ([]PairLoginPassword, error) {
 
 	user := ctx.Value(KeyContext("user"))
@@ -125,6 +134,7 @@ func (dbc *DBConnector) SelectPairLoginPassword(ctx context.Context) ([]PairLogi
 	return arrPlp, nil
 }
 
+// DelPairLoginPassword удаляет пару пользователь/пароль по пользователю и УИДу.
 func (dbc *DBConnector) DelPairLoginPassword(plp *PairLoginPassword) error {
 	claims, ok := token.ExtractClaims(plp.User)
 	if !ok {
@@ -145,6 +155,8 @@ func (dbc *DBConnector) DelPairLoginPassword(plp *PairLoginPassword) error {
 	return nil
 }
 
+// UpdateTextData обновляет произвольные текстовые данные.
+// Ищет по пользователю и УИДу, если не находи создате новый. Если находит обновляет найденный
 func (dbc *DBConnector) UpdateTextData(td *TextData) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -171,6 +183,7 @@ func (dbc *DBConnector) UpdateTextData(td *TextData) error {
 	return nil
 }
 
+// SelectTextData одбирает все произвольные текстовые данные по пользователю.
 func (dbc *DBConnector) SelectTextData(ctx context.Context) ([]TextData, error) {
 
 	user := ctx.Value(KeyContext("user"))
@@ -196,6 +209,7 @@ func (dbc *DBConnector) SelectTextData(ctx context.Context) ([]TextData, error) 
 	return arrTd, nil
 }
 
+// DelTextData удаляет произвольные текстовые данные по пользователю и УИДу.
 func (dbc *DBConnector) DelTextData(td *TextData) error {
 	claims, ok := token.ExtractClaims(td.User)
 	if !ok {
@@ -216,6 +230,8 @@ func (dbc *DBConnector) DelTextData(td *TextData) error {
 	return nil
 }
 
+// UpdateBankCard обновляет данные банковских карт.
+// Ищет по пользователю и УИДу, если не находи создате новый. Если находит обновляет найденный
 func (dbc *DBConnector) UpdateBankCard(bc *BankCard) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -242,6 +258,7 @@ func (dbc *DBConnector) UpdateBankCard(bc *BankCard) error {
 	return nil
 }
 
+// SelectBankCard одбирает все данные банковских карт по пользователю.
 func (dbc *DBConnector) SelectBankCard(ctx context.Context) ([]BankCard, error) {
 
 	user := ctx.Value(KeyContext("user"))
@@ -266,6 +283,7 @@ func (dbc *DBConnector) SelectBankCard(ctx context.Context) ([]BankCard, error) 
 	return arrBc, nil
 }
 
+// DelBankCard удаляет данные банковских карт по пользователю и УИДу.
 func (dbc *DBConnector) DelBankCard(bc *BankCard) error {
 	claims, ok := token.ExtractClaims(bc.User)
 	if !ok {
@@ -286,6 +304,8 @@ func (dbc *DBConnector) DelBankCard(bc *BankCard) error {
 	return nil
 }
 
+// UpdateBinaryData обновляет произвольные бинарные данные.
+// Ищет по пользователю и УИДу, если не находи создате новый. Если находит обновляет найденный
 func (dbc *DBConnector) UpdateBinaryData(bd *BinaryData) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
@@ -311,6 +331,7 @@ func (dbc *DBConnector) UpdateBinaryData(bd *BinaryData) error {
 	return nil
 }
 
+// SelectBinaryData одбирает все произвольные бинарные данные карт по пользователю.
 func (dbc *DBConnector) SelectBinaryData(ctx context.Context) ([]BinaryData, error) {
 
 	user := ctx.Value(KeyContext("user"))
@@ -335,6 +356,8 @@ func (dbc *DBConnector) SelectBinaryData(ctx context.Context) ([]BinaryData, err
 	return arrBd, nil
 }
 
+// DelBinaryData удаляет данные произвольные бинарные данные по пользователю и УИДу.
+// Удаляет данные из таблицы PortionsFiles по УИДу
 func (dbc *DBConnector) DelBinaryData(bd *BinaryData) error {
 	claims, ok := token.ExtractClaims(bd.User)
 	if !ok {
@@ -367,6 +390,7 @@ func (dbc *DBConnector) DelBinaryData(bd *BinaryData) error {
 	return nil
 }
 
+// SelectPortionBinaryData одбирает все порции файлов по УИДу.
 func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]PortionBinaryData, error) {
 
 	uid := ctx.Value(KeyContext("uid"))
@@ -391,6 +415,7 @@ func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]PortionB
 	return arrPbd, nil
 }
 
+// CreateModeLDB при запуске сервера создает таблицы, если их не находит
 func CreateModeLDB(Pool *pgxpool.Pool) error {
 	ctx := context.Background()
 	conn, err := Pool.Acquire(ctx)

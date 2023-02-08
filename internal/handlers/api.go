@@ -105,7 +105,7 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenString := ""
-	err = srv.DBConnector.GetAccount(user)
+	err = srv.DBConnector.CheckAccount(user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
 		http.Error(w, err.Error(), errs.HTTPErrors(err))

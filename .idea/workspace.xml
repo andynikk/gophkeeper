@@ -4,12 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0001">
-      <change beforePath="$PROJECT_DIR$/internal/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logger/logger.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/midware/midware.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/midware/midware.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/postgresql/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/database.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/tests/tests.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/tests/tests.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/token/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/token/token.go" afterDir="false" />
+    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0002">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/server/main_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/server/main_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/api.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/postgresql/services.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/services.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -178,7 +177,7 @@
       <updated>1674651512234</updated>
       <workItem from="1674651513995" duration="153071000" />
       <workItem from="1675002648102" duration="4276000" />
-      <workItem from="1675007337576" duration="203626000" />
+      <workItem from="1675007337576" duration="206118000" />
     </task>
     <task id="LOCAL-00001" summary="v0.001">
       <created>1674894125209</created>
@@ -222,7 +221,14 @@
       <option name="project" value="LOCAL" />
       <updated>1675801603969</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="review 1. 0002">
+      <created>1675802624695</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1675802624695</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -245,7 +251,8 @@
     <MESSAGE value="v0.003" />
     <MESSAGE value="v0.004" />
     <MESSAGE value="review 1. 0001" />
-    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0001" />
+    <MESSAGE value="review 1. 0002" />
+    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0002" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

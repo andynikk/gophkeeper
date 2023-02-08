@@ -75,7 +75,7 @@ func TestFuncClient(t *testing.T) {
 							t.Errorf("Error create user DB user")
 						}
 
-						err := srv.DBConnector.GetAccount(user)
+						err := srv.DBConnector.CheckAccount(user)
 						if err != nil {
 							t.Errorf("Error create user DB user")
 						}
@@ -95,7 +95,7 @@ func TestFuncClient(t *testing.T) {
 							t.Errorf("Error delete ping DB")
 						}
 
-						err := srv.DBConnector.GetAccount(user)
+						err := srv.DBConnector.CheckAccount(user)
 						if err == nil {
 							t.Errorf("Error delete user DB user")
 						}
