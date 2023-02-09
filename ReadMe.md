@@ -21,8 +21,7 @@ ADDRESS
 DATABASE_URI
 
 
-
-![](Block diagram.jpg)
+![Block diagram](https://user-images.githubusercontent.com/64521520/217944111-e00dc7da-a080-4bbd-bb68-faa7db98e0aa.jpg)
 
 1.	При запуске клиента создается websocket между клиентом и сервером. Одна горутина спамит текущий токен на сервер.
 2.	Если токен валиден, то сервер собирает всю информацию по пользователям и в бесконечном цикле отсылает их, по
