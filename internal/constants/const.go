@@ -88,33 +88,33 @@ const (
 
 const (
 	//QueryInsertPairsTemplate запрос на добавление пары логин/пароль
-	QueryInsertPairsTemplate = `INSERT INTO gophkeeper."PairLoginPassword"(
+	QueryInsertPairsTemplate = `INSERT INTO gophkeeper."PairsLoginPassword"(
 								"User", "UID", "TypePairs", "Name", "Password")
 							VALUES ($1, $2, $3, $4, $5);`
 
 	//QueryUpdatePairsTemplate запрос на изменение пары логин/пароль по пользователю и УИДу
-	QueryUpdatePairsTemplate = `UPDATE gophkeeper."PairLoginPassword"
+	QueryUpdatePairsTemplate = `UPDATE gophkeeper."PairsLoginPassword"
 							SET "User"=$1, "UID"=$2, "TypePairs"=$3, "Name"=$4, "Password"=$5
 							WHERE "User" = $1 and "UID" = $2;`
 
 	//QuerySelectPairsTemplate запрос на выборку пары логин/пароль по пользователю
 	QuerySelectPairsTemplate = `SELECT "User", "UID", "TypePairs", "Name", "Password" 
 							FROM 
-								gophkeeper."PairLoginPassword"
+								gophkeeper."PairsLoginPassword"
 							WHERE 
 								"User" = $1;`
 
 	//QuerySelectOnePairsTemplate запрос на выборку пары логин/пароль по пользователю и УИДу
 	QuerySelectOnePairsTemplate = `SELECT "User", "UID", "TypePairs", "Name", "Password" 
 							FROM 
-								gophkeeper."PairLoginPassword"
+								gophkeeper."PairsLoginPassword"
 							WHERE 
 								"User" = $1 and "UID" = $2;`
 
 	//QueryDelOnePairsTemplate запрос на уделению пары логин/пароль по пользователю и УИДу
 	QueryDelOnePairsTemplate = `DELETE 
 							FROM 
-								gophkeeper."PairLoginPassword"
+								gophkeeper."PairsLoginPassword"
 							WHERE 
 								"User" = $1 and "UID" = $2;`
 ) //Pairs

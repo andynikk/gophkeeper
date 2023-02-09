@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -95,73 +96,36 @@ func (c *Client) wsDataRead(ctx context.Context, conn *websocket.Conn) {
 				constants.Logger.ErrorLog(err)
 			}
 
-			tm := postgresql.TypeMsg{}
-			if err = json.Unmarshal(messageContent, &tm); err != nil {
+			var result map[string]any
+			err = json.Unmarshal(messageContent, &result)
+			if err != nil {
 				constants.Logger.ErrorLog(err)
 				continue
 			}
 
-			switch tm.Type {
-			case constants.TypePairLoginPassword.String():
-				var PlpWT postgresql.PairLoginPasswordWithType
-				if err = json.Unmarshal(messageContent, &PlpWT); err != nil {
+			c.DataList = ListUserData{}
+
+			for k, v := range result {
+				arrK := strings.Split(k, ":")
+				j, _ := json.Marshal(v)
+				na, err := postgresql.NewAppender(arrK[0], c.User.Name)
+				if err != nil {
 					constants.Logger.ErrorLog(err)
 					continue
 				}
 
-				var arrR []postgresql.DataList
-				arrPlp := PlpWT.Value
-				for _, v := range arrPlp {
-					arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
-						SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
-						TypeResponse:  constants.TypePairLoginPassword.String()})
-				}
-				c.DataList[constants.TypePairLoginPassword.String()] = arrR
-			case constants.TypeTextData.String():
-				var Td postgresql.TextDataWithType
-				if err = json.Unmarshal(messageContent, &Td); err != nil {
+				err = json.Unmarshal(j, &na)
+				if err != nil {
 					constants.Logger.ErrorLog(err)
 					continue
 				}
 
-				var arrR []postgresql.DataList
-				arrTd := Td.TextData
-				for _, v := range arrTd {
-					arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
-						SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
-						TypeResponse:  constants.TypeTextData.String()})
+				newDL := postgresql.DataList{
+					TypeResponse:  na.GetType(),
+					MainText:      na.GetMainText(),
+					SecondaryText: na.GetSecondaryText(c.Config.CryptoKey),
 				}
-				c.DataList[constants.TypeTextData.String()] = arrR
-			case constants.TypeBinaryData.String():
-				var Bd postgresql.BinaryDataWithType
-				if err = json.Unmarshal(messageContent, &Bd); err != nil {
-					constants.Logger.ErrorLog(err)
-					continue
-				}
-
-				var arrR []postgresql.DataList
-				arrBd := Bd.BinaryData
-				for _, v := range arrBd {
-					arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
-						SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
-						TypeResponse:  constants.TypeBinaryData.String()})
-				}
-				c.DataList[constants.TypeBinaryData.String()] = arrR
-			case constants.TypeBankCardData.String():
-				var Bc postgresql.BankCardWithType
-				if err = json.Unmarshal(messageContent, &Bc); err != nil {
-					constants.Logger.ErrorLog(err)
-					continue
-				}
-
-				var arrR []postgresql.DataList
-				arrBd := Bc.BankCard
-				for _, v := range arrBd {
-					arrR = append(arrR, postgresql.DataList{MainText: v.GetMainText(),
-						SecondaryText: v.GetSecondaryText(c.Config.CryptoKey),
-						TypeResponse:  constants.TypeBankCardData.String()})
-				}
-				c.DataList[constants.TypeBankCardData.String()] = arrR
+				c.DataList[na.GetType()] = append(c.DataList[na.GetType()], newDL)
 			}
 		}
 	}

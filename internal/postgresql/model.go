@@ -12,22 +12,24 @@ import (
 	"gophkeeper/internal/encryption"
 )
 
-type Respondent interface {
-	GetType() string
-	GetMainText() string
-	GetSecondaryText(string) string
-}
+//type Respondent interface {
+//	GetType() string
+//	GetMainText() string
+//	GetSecondaryText(string) string
+//}
 
 type PairLoginPassword struct {
-	User      string `json:"user"`
-	Uid       string `json:"uid"`
-	TypePairs string `json:"type"`
-	Name      string `json:"name"`
-	Password  string `json:"password"`
-	Event     string `json:"event"`
+	Type     string `json:"type"`
+	User     string `json:"user"`
+	Uid      string `json:"uid"`
+	TypePair string `json:"type_pair"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+	Event    string `json:"event"`
 }
 
 type TextData struct {
+	Type  string `json:"type"`
 	User  string `json:"user"`
 	Uid   string `json:"uid"`
 	Text  string `json:"text"`
@@ -35,12 +37,14 @@ type TextData struct {
 }
 
 type PortionBinaryData struct {
+	Type    string `json:"type"`
 	Uid     string `json:"uid"`
 	Portion int64  `json:"portion"`
 	Body    string `json:"body"`
 }
 
 type BinaryData struct {
+	Type          string `json:"type"`
 	User          string `json:"user"`
 	Uid           string `json:"uid"`
 	Patch         string `json:"patch"`
@@ -52,6 +56,7 @@ type BinaryData struct {
 }
 
 type BankCard struct {
+	Type   string        `json:"type"`
 	User   string        `json:"user"`
 	Uid    string        `json:"uid"`
 	Number string        `json:"patch"`
@@ -61,47 +66,25 @@ type BankCard struct {
 }
 
 type User struct {
+	Type         string `json:"type"`
 	Name         string `json:"login"`
 	Password     string `json:"password"`
 	HashPassword string `json:"hash_password"`
 	Event        string `json:"event"`
 }
 
-type Users struct {
-	Users []User
+type AppenderWithType struct {
+	Type  string   `json:"type"`
+	Event string   `json:"event"`
+	Value Appender `json:"value"`
 }
 
-type UsersWithType struct {
-	Type  string
-	Event string
-	Value []User
+type KeyMsg struct {
+	Type string `json:"type"`
+	UID  string `json:"uid"`
 }
 
-type PairLoginPasswordWithType struct {
-	Type  string
-	Event string
-	Value []PairLoginPassword
-}
-
-type TextDataWithType struct {
-	Type     string
-	Event    string
-	TextData []TextData
-}
-
-type BinaryDataWithType struct {
-	Type       string
-	Event      string
-	BinaryData []BinaryData
-}
-
-type BankCardWithType struct {
-	Type     string
-	Event    string
-	BankCard []BankCard
-}
-
-type Appender map[string]interface{}
+type Appender map[string]Updater
 
 type TypeMsg struct {
 	Type  string
@@ -121,6 +104,38 @@ type DataList struct {
 type KeyContext string
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (p *PairLoginPassword) SetValue(a Appender) {
+	a[p.Uid] = p
+}
+
+func (p *PairLoginPassword) Select(ctx context.Context, conn *pgxpool.Conn) (Appender, error) {
+	claims, ok := token.ExtractClaims(p.User)
+	if !ok {
+		return nil, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectPairsTemplate, claims["user"])
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	var appender = Appender{}
+	for rows.Next() {
+		var plp PairLoginPassword
+
+		err = rows.Scan(&plp.User, &plp.Uid, &plp.TypePair, &plp.Name, &plp.Password)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+
+		plp.SetValue(appender)
+	}
+
+	return appender, nil
+}
 
 // CheckExistence метод объекта PairLoginPassword проверяющий на существование в БД, по пользователю и УИДу
 func (p *PairLoginPassword) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
@@ -145,7 +160,7 @@ func (p *PairLoginPassword) Insert(ctx context.Context, conn *pgxpool.Conn) erro
 		return errs.ErrInvalidLoginPassword
 	}
 
-	_, err := conn.Exec(ctx, constants.QueryInsertPairsTemplate, claims["user"], p.Uid, p.TypePairs, p.Name, p.Password)
+	_, err := conn.Exec(ctx, constants.QueryInsertPairsTemplate, claims["user"], p.Uid, p.TypePair, p.Name, p.Password)
 	if err != nil {
 		return errs.InvalidFormat
 	}
@@ -160,11 +175,25 @@ func (p *PairLoginPassword) Update(ctx context.Context, conn *pgxpool.Conn) erro
 		return errs.ErrInvalidLoginPassword
 	}
 
-	_, err := conn.Exec(ctx, constants.QueryUpdatePairsTemplate, claims["user"], p.Uid, p.TypePairs, p.Name, p.Password)
+	_, err := conn.Exec(ctx, constants.QueryUpdatePairsTemplate, claims["user"], p.Uid, p.TypePair, p.Name, p.Password)
 	if err != nil {
 		return errs.InvalidFormat
 	}
 
+	return nil
+}
+
+// Delete метод объекта PairLoginPassword. Удаляет объект в БД, по пользователю и УИДу
+func (p *PairLoginPassword) Delete(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(p.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryDelOnePairsTemplate, claims["user"], p.Uid)
+	if err != nil {
+		return errs.InvalidFormat
+	}
 	return nil
 }
 
@@ -180,7 +209,7 @@ func (p *PairLoginPassword) GetMainText() string {
 
 // GetSecondaryText метод объекта PairLoginPassword. Создает вспомогательный текст для объекта List, клиентского приложения.
 func (p *PairLoginPassword) GetSecondaryText(cryptoKey string) string {
-	return encryption.DecryptString(p.TypePairs, cryptoKey) + ":::" +
+	return encryption.DecryptString(p.TypePair, cryptoKey) + ":::" +
 		encryption.DecryptString(p.Name, cryptoKey) + ":::" +
 		encryption.DecryptString(p.Password, cryptoKey)
 }
@@ -190,7 +219,54 @@ func (p *PairLoginPassword) SetFromInListUserData(a Appender) {
 	a[p.Uid] = p
 }
 
+func (p *PairLoginPassword) GetEvent() string {
+	return p.Event
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// GetType метод объекта PairLoginPassword. Возвращает текстовое представление объекта
+func (u *User) GetType() string {
+	return constants.TypePairLoginPassword.String()
+}
+
+// GetMainText метод объекта TextData. Создает основной текст для объекта List, клиентского приложения.
+func (u *User) GetMainText() string {
+	return ""
+}
+
+// GetSecondaryText метод объекта TextData. Создает вспомогательный текст для объекта List, клиентского приложения.
+func (u *User) GetSecondaryText(cryptoKey string) string {
+	return encryption.DecryptString("", cryptoKey)
+}
+
+func (u *User) SetValue(a Appender) {
+	a[u.Name] = u
+}
+
+func (u *User) Select(ctx context.Context, conn *pgxpool.Conn) (Appender, error) {
+
+	rows, err := conn.Query(ctx, constants.QuerySelectUserWithWhereTemplate, u.Name)
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	appender := Appender{}
+	for rows.Next() {
+		var u User
+
+		err = rows.Scan(&u.Name, &u.Password)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+
+		u.SetValue(appender)
+	}
+
+	return appender, nil
+}
 
 // Delete метод объекта User. Удаляет объект из БД по имени и хешированному паролю
 func (u *User) Delete(ctx context.Context, conn *pgxpool.Conn) error {
@@ -221,12 +297,79 @@ func (u *User) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, er
 	return rows.Next(), nil
 }
 
+// Update метод объекта PairLoginPassword. Обновляет объект в БД, по пользователю и УИДу
+func (u *User) Update(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(u.Name)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryUpdatUserTemplate, claims["user"], u.Password)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
 // SetFromInListUserData метод объекта User. Добавляет оьъект в хранилище сервера InListUserData
 func (u *User) SetFromInListUserData(a Appender) {
 	a[u.Name] = u
 }
 
+func (u *User) GetEvent() string {
+	return u.Event
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (t *TextData) SetValue(a Appender) {
+	a[t.Uid] = t
+}
+
+func (t *TextData) Select(ctx context.Context, conn *pgxpool.Conn) (Appender, error) {
+
+	claims, ok := token.ExtractClaims(t.User)
+	if !ok {
+		return nil, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectTextData, claims["user"])
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	appender := Appender{}
+	for rows.Next() {
+		var td TextData
+
+		err = rows.Scan(&td.User, &td.Uid, &td.Text)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+
+		td.SetValue(appender)
+	}
+
+	return appender, nil
+}
+
+// Update метод объекта TextData. Обновляет объект в БД, по пользователю и УИДу
+func (t *TextData) Update(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(t.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryUpdateTextData, claims["user"], t.Uid, t.Text)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
 
 // CheckExistence метод объекта TextData проверяющий на существование в БД, по пользователю и УИДу
 func (t *TextData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
@@ -259,18 +402,17 @@ func (t *TextData) Insert(ctx context.Context, conn *pgxpool.Conn) error {
 	return nil
 }
 
-// Update метод объекта TextData. Обновляет объект в БД, по пользователю и УИДу
-func (t *TextData) Update(ctx context.Context, conn *pgxpool.Conn) error {
+// Delete метод объекта TextData. Удаляет объект в БД, по пользователю и УИДу
+func (t *TextData) Delete(ctx context.Context, conn *pgxpool.Conn) error {
 	claims, ok := token.ExtractClaims(t.User)
 	if !ok {
 		return errs.ErrInvalidLoginPassword
 	}
 
-	_, err := conn.Exec(ctx, constants.QueryUpdateTextData, claims["user"], t.Uid, t.Text)
+	_, err := conn.Exec(ctx, constants.QueryDelOneTextDataTemplate, claims["user"], t.Uid)
 	if err != nil {
 		return errs.InvalidFormat
 	}
-
 	return nil
 }
 
@@ -294,7 +436,44 @@ func (t *TextData) SetFromInListUserData(a Appender) {
 	a[t.Uid] = t
 }
 
+func (t *TextData) GetEvent() string {
+	return t.Event
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (b *BinaryData) SetValue(a Appender) {
+	a[b.Uid] = b
+}
+
+func (b *BinaryData) Select(ctx context.Context, conn *pgxpool.Conn) (Appender, error) {
+
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return nil, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectBinaryData, claims["user"])
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	appender := Appender{}
+	for rows.Next() {
+		var bd BinaryData
+
+		err = rows.Scan(&bd.User, &bd.Uid, &bd.Name, &bd.Expansion, &bd.Size, &bd.Patch)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+
+		bd.SetValue(appender)
+	}
+
+	return appender, nil
+}
 
 // CheckExistence метод объекта BinaryData проверяющий на существование в БД, по пользователю и УИДу
 func (b *BinaryData) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
@@ -343,6 +522,36 @@ func (b *BinaryData) Update(ctx context.Context, conn *pgxpool.Conn) error {
 	return nil
 }
 
+// Delete метод объекта BinaryData. Удаляет объект в БД, по пользователю и УИДу
+func (b *BinaryData) Delete(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+
+	_, err = conn.Exec(ctx, constants.QueryDelOneBinaryDataTemplate, claims["user"], b.Uid)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return errs.InvalidFormat
+	}
+
+	_, err = conn.Exec(ctx, constants.QueryDelPortionsBinaryData, b.Uid)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return errs.InvalidFormat
+	}
+	if err = tx.Commit(ctx); err != nil {
+		constants.Logger.ErrorLog(err)
+		return errs.InvalidFormat
+	}
+
+	return nil
+}
+
 // GetType метод объекта BinaryData. Возвращает текстовое представление объекта
 func (b *BinaryData) GetType() string {
 	return constants.TypeBinaryData.String()
@@ -363,7 +572,44 @@ func (b *BinaryData) SetFromInListUserData(a Appender) {
 	a[b.Uid] = b
 }
 
+func (b *BinaryData) GetEvent() string {
+	return b.Event
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (b *BankCard) SetValue(a Appender) {
+	a[b.Uid] = b
+}
+
+func (b *BankCard) Select(ctx context.Context, conn *pgxpool.Conn) (Appender, error) {
+
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return nil, errs.ErrInvalidLoginPassword
+	}
+
+	rows, err := conn.Query(ctx, constants.QuerySelectBankCard, claims["user"])
+	if err != nil {
+		return nil, errs.InvalidFormat
+	}
+	defer rows.Close()
+
+	appender := Appender{}
+	for rows.Next() {
+		var bc BankCard
+
+		err = rows.Scan(&bc.User, &bc.Uid, &bc.Number, &bc.Cvc)
+		if err != nil {
+			constants.Logger.ErrorLog(err)
+			continue
+		}
+
+		bc.SetValue(appender)
+	}
+
+	return appender, nil
+}
 
 // CheckExistence метод объекта BankCard проверяющий на существование в БД, по пользователю и УИДу
 func (b *BankCard) CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error) {
@@ -411,6 +657,20 @@ func (b *BankCard) Update(ctx context.Context, conn *pgxpool.Conn) error {
 	return nil
 }
 
+// Delete метод объекта BankCard. Удаляет объект в БД, по пользователю и УИДу
+func (b *BankCard) Delete(ctx context.Context, conn *pgxpool.Conn) error {
+	claims, ok := token.ExtractClaims(b.User)
+	if !ok {
+		return errs.ErrInvalidLoginPassword
+	}
+
+	_, err := conn.Exec(ctx, constants.QueryDelOneBankCardTemplate, claims["user"], b.Uid)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	return nil
+}
+
 // GetType метод объекта BankCard. Возвращает текстовое представление объекта
 func (b *BankCard) GetType() string {
 	return constants.TypeBankCardData.String()
@@ -430,6 +690,10 @@ func (b *BankCard) GetSecondaryText(cryptoKey string) string {
 // SetFromInListUserData метод объекта BankCard. Добавляет оьъект в хранилище сервера InListUserData
 func (b *BankCard) SetFromInListUserData(a Appender) {
 	a[b.Uid] = b
+}
+
+func (b *BankCard) GetEvent() string {
+	return b.Event
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////

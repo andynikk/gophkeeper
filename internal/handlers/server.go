@@ -162,80 +162,23 @@ func (srv *Server) SaveData() {
 	srv.Lock()
 	defer srv.Unlock()
 
-	for kType, vType := range srv.InListUserData {
+	for _, vType := range srv.InListUserData {
 		for k, v := range vType {
-			switch kType {
-			case constants.TypePairLoginPassword.String():
-				plp := v.(*postgresql.PairLoginPassword)
 
-				if plp.Event == constants.EventDel.String() {
-					if err := srv.DBConnector.DelPairLoginPassword(plp); err != nil {
-						constants.Logger.ErrorLog(err)
-						continue
-					}
-					delete(vType, k)
-					continue
-				}
-
-				if err := srv.DBConnector.UpdatePairLoginPassword(plp); err != nil {
+			if v.GetEvent() == constants.EventDel.String() {
+				if err := srv.DBConnector.Delete(v); err != nil {
 					constants.Logger.ErrorLog(err)
 					continue
 				}
 				delete(vType, k)
-			case constants.TypeTextData.String():
-				td := v.(*postgresql.TextData)
-
-				if td.Event == constants.EventDel.String() {
-					if err := srv.DBConnector.DelTextData(td); err != nil {
-						constants.Logger.ErrorLog(err)
-						continue
-					}
-					delete(vType, k)
-					continue
-				}
-
-				if err := srv.DBConnector.UpdateTextData(td); err != nil {
-					constants.Logger.ErrorLog(err)
-					continue
-				}
-				delete(vType, k)
-			case constants.TypeBinaryData.String():
-				bd := v.(*postgresql.BinaryData)
-
-				if bd.Event == constants.EventDel.String() {
-					if err := srv.DBConnector.DelBinaryData(bd); err != nil {
-						constants.Logger.ErrorLog(err)
-						continue
-					}
-					delete(vType, k)
-					continue
-				}
-
-				if err := srv.DBConnector.UpdateBinaryData(bd); err != nil {
-					constants.Logger.ErrorLog(err)
-					continue
-				}
-				delete(vType, k)
-			case constants.TypeBankCardData.String():
-				bc := v.(*postgresql.BankCard)
-
-				if bc.Event == constants.EventDel.String() {
-					if err := srv.DBConnector.DelBankCard(bc); err != nil {
-						constants.Logger.ErrorLog(err)
-						continue
-					}
-					delete(vType, k)
-					continue
-				}
-
-				if err := srv.DBConnector.UpdateBankCard(bc); err != nil {
-					constants.Logger.ErrorLog(err)
-					continue
-				}
-				delete(vType, k)
-			default:
-
+				continue
 			}
+
+			if err := srv.DBConnector.Update(v); err != nil {
+				constants.Logger.ErrorLog(err)
+				continue
+			}
+			delete(vType, k)
 		}
 	}
 }

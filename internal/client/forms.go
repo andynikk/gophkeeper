@@ -84,10 +84,10 @@ func (f *Forms) openListForms(c *Client) {
 
 						arrSecondaryText := strings.Split(secondaryText, ":::")
 						plp := postgresql.PairLoginPassword{
-							Uid:       arrMainText[1],
-							TypePairs: arrSecondaryText[0],
-							Name:      arrSecondaryText[1],
-							Password:  arrSecondaryText[2],
+							Uid:      arrMainText[1],
+							TypePair: arrSecondaryText[0],
+							Name:     arrSecondaryText[1],
+							Password: arrSecondaryText[2],
 						}
 						f.openPairLoginPasswordForms(c, plp)
 						f.Pages.SwitchToPage("PairLoginPassword")
@@ -136,8 +136,8 @@ func (f *Forms) openPairLoginPasswordForms(c *Client, plp postgresql.PairLoginPa
 	}
 
 	f.Form.AddTextView("UID:", plp.Uid, 36, 1, true, false)
-	f.Form.AddInputField("type", plp.TypePairs, 30, nil, func(typePairs string) {
-		plp.TypePairs = typePairs
+	f.Form.AddInputField("type", plp.TypePair, 30, nil, func(TypePair string) {
+		plp.TypePair = TypePair
 	})
 	f.Form.AddInputField("name", plp.Name, 30, nil, func(name string) {
 		plp.Name = name
@@ -147,7 +147,7 @@ func (f *Forms) openPairLoginPasswordForms(c *Client, plp postgresql.PairLoginPa
 	})
 
 	f.Form.AddButton("Add/edit login/password pairs", func() {
-		plp.TypePairs = encryption.EncryptString(plp.TypePairs, c.Config.CryptoKey)
+		plp.TypePair = encryption.EncryptString(plp.TypePair, c.Config.CryptoKey)
 		plp.Name = encryption.EncryptString(plp.Name, c.Config.CryptoKey)
 		plp.Password = encryption.EncryptString(plp.Password, c.Config.CryptoKey)
 		plp.Event = constants.EventAddEdit.String()
@@ -160,7 +160,7 @@ func (f *Forms) openPairLoginPasswordForms(c *Client, plp postgresql.PairLoginPa
 		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 	f.Form.AddButton("Delete login/password pairs", func() {
-		plp.TypePairs = encryption.EncryptString(plp.TypePairs, c.Config.CryptoKey)
+		plp.TypePair = encryption.EncryptString(plp.TypePair, c.Config.CryptoKey)
 		plp.Name = encryption.EncryptString(plp.Name, c.Config.CryptoKey)
 		plp.Password = encryption.EncryptString(plp.Password, c.Config.CryptoKey)
 		plp.Event = constants.EventDel.String()

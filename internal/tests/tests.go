@@ -20,12 +20,12 @@ func CreateUser(event string) postgresql.User {
 // CreatePairLoginPassword создание сущности PairLoginPassword для тестов
 func CreatePairLoginPassword(token, event, cryptoKey string) postgresql.PairLoginPassword {
 	return postgresql.PairLoginPassword{
-		User:      token,
-		Uid:       "bf340769-687e-485e-968b-976cf12f7b64",
-		TypePairs: encryption.EncryptString(constants.TypePairLoginPassword.String(), cryptoKey),
-		Name:      encryption.EncryptString("yandex.ru", cryptoKey),
-		Password:  encryption.EncryptString("test_password", cryptoKey),
-		Event:     event,
+		User:     token,
+		Uid:      "bf340769-687e-485e-968b-976cf12f7b64",
+		TypePair: encryption.EncryptString(constants.TypePairLoginPassword.String(), cryptoKey),
+		Name:     encryption.EncryptString("yandex.ru", cryptoKey),
+		Password: encryption.EncryptString("test_password", cryptoKey),
+		Event:    event,
 	}
 }
 

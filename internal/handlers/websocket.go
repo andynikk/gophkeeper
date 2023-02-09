@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"gophkeeper/internal/token"
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
 	"gophkeeper/internal/compression"
@@ -28,236 +30,38 @@ func (srv *Server) wsPingData(conn *websocket.Conn) {
 			continue
 		}
 
-		claims, ok := token.ExtractClaims(tkn)
+		_, ok := token.ExtractClaims(tkn)
 		if !ok {
 			continue
 		}
 
+		app := postgresql.Appender{}
+
 		ctx := context.Background()
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
+		ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), tkn)
 
-		arrPlp, err := srv.DBConnector.SelectPairLoginPassword(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		plpwt := postgresql.PairLoginPasswordWithType{Type: constants.TypePairLoginPassword.String(),
-			Value: arrPlp}
-		msg, err := json.MarshalIndent(&plpwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(2, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
+		arrType := []string{constants.TypePairLoginPassword.String(), constants.TypeTextData.String(),
+			constants.TypeBinaryData.String(), constants.TypeBankCardData.String()}
 
-		arrTd, err := srv.DBConnector.SelectTextData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		tdwt := postgresql.TextDataWithType{Type: constants.TypeTextData.String(),
-			TextData: arrTd}
-		msg, err = json.MarshalIndent(&tdwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(2, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		arrBd, err := srv.DBConnector.SelectBinaryData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		bdwt := postgresql.BinaryDataWithType{Type: constants.TypeBinaryData.String(),
-			BinaryData: arrBd}
-		msg, err = json.MarshalIndent(&bdwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(2, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		arrBc, err := srv.DBConnector.SelectBankCard(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		bcwt := postgresql.BankCardWithType{Type: constants.TypeBankCardData.String(),
-			BankCard: arrBc}
-		msg, err = json.MarshalIndent(&bcwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(2, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-	}
-}
-
-func (srv *Server) wsDataRead(conn *websocket.Conn) {
-	for {
-		_, messageContent, err := conn.ReadMessage()
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			return
-		}
-
-		messageContent, err = compression.Decompress(messageContent)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		tm := postgresql.TypeMsg{}
-		if err = json.Unmarshal(messageContent, &tm); err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		switch tm.Type {
-		case constants.TypeUserData.String():
-
-			var UsrWT postgresql.UsersWithType
-			if err = json.Unmarshal(messageContent, &UsrWT); err != nil {
+		for _, t := range arrType {
+			arr, err := srv.DBConnector.Select(ctxWV, t)
+			if err != nil {
 				constants.Logger.ErrorLog(err)
 				continue
 			}
-			srv.Mutex.Lock()
-
-			arrUsr := UsrWT.Value
-
-			users, ok := srv.InListUserData[constants.TypeUserData.String()]
-			if !ok {
-				users = postgresql.Appender{}
+			for _, val := range arr {
+				app[fmt.Sprintf("%s:%s", t, uuid.New().String())] = val
 			}
-			for _, v := range arrUsr {
-				v.SetFromInListUserData(users)
-			}
-			srv.InListUserData[constants.TypeUserData.String()] = users
-
-			srv.Mutex.Unlock()
-		case constants.TypePairLoginPassword.String():
-
-			var plpWT postgresql.PairLoginPasswordWithType
-			if err = json.Unmarshal(messageContent, &plpWT); err != nil {
-				constants.Logger.ErrorLog(err)
-				continue
-			}
-			srv.Mutex.Lock()
-
-			arrPlp := plpWT.Value
-			plp, ok := srv.InListUserData[constants.TypePairLoginPassword.String()]
-			if !ok {
-				plp = postgresql.Appender{}
-			}
-			for _, v := range arrPlp {
-				v.SetFromInListUserData(plp)
-			}
-			srv.InListUserData[constants.TypePairLoginPassword.String()] = plp
-
-			srv.Mutex.Unlock()
-		}
-	}
-
-}
-
-func (srv *Server) wsDataWrite(conn *websocket.Conn) {
-	b := []byte("")
-	for {
-		_, msgToken, err := conn.ReadMessage()
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
 		}
 
-		tkn := string(msgToken)
-		if tkn == "" {
-			continue
-		}
-
-		claims, ok := token.ExtractClaims(tkn)
-		if !ok {
-			continue
-		}
-
-		ctx := context.Background()
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
-		//ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), "a1")
-
-		arrPlp, err := srv.DBConnector.SelectPairLoginPassword(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		plpwt := postgresql.PairLoginPasswordWithType{Type: constants.TypePairLoginPassword.String(),
-			Value: arrPlp}
-		msg, err := json.MarshalIndent(&plpwt, "", " ")
+		msg, err := json.MarshalIndent(&app, "", " ")
 		msg, err = compression.Compress(msg)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 		}
-		if err = conn.WriteMessage(1, msg); err != nil {
+		if err = conn.WriteMessage(2, msg); err != nil {
 			constants.Logger.ErrorLog(err)
 		}
-
-		arrTd, err := srv.DBConnector.SelectTextData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		tdwt := postgresql.TextDataWithType{Type: constants.TypeTextData.String(),
-			TextData: arrTd}
-		msg, err = json.MarshalIndent(&tdwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(1, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		arrBd, err := srv.DBConnector.SelectBinaryData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		bdwt := postgresql.BinaryDataWithType{Type: constants.TypeBinaryData.String(),
-			BinaryData: arrBd}
-		msg, err = json.MarshalIndent(&bdwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(1, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		arrBc, err := srv.DBConnector.SelectBankCard(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		bcwt := postgresql.BankCardWithType{Type: constants.TypeBankCardData.String(),
-			BankCard: arrBc}
-		msg, err = json.MarshalIndent(&bcwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(1, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		if err = conn.WriteMessage(0, b); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
 	}
 }
 

@@ -70,7 +70,7 @@ func TestFuncClient(t *testing.T) {
 					}
 					t.Run("Checking create user DB user", func(t *testing.T) {
 						user := tests.CreateUser("")
-						err = srv.DBConnector.NewAccount(&user)
+						err = srv.DBConnector.Update(&user)
 						if err != nil {
 							t.Errorf("Error create user DB user")
 						}
@@ -104,7 +104,7 @@ func TestFuncClient(t *testing.T) {
 					t.Run("Checking Pairs login/password DB", func(t *testing.T) {
 						plp := tests.CreatePairLoginPassword(strToken, "", ck)
 						t.Run("Checking update Pairs login/password DB", func(t *testing.T) {
-							err = srv.DBConnector.UpdatePairLoginPassword(&plp)
+							err = srv.DBConnector.Update(&plp)
 							if err != nil {
 								t.Errorf("Error Pairs login/password DB")
 							}
@@ -112,13 +112,13 @@ func TestFuncClient(t *testing.T) {
 						t.Run("Checking select Pairs login/password DB", func(t *testing.T) {
 							ctx := context.Background()
 							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
-							arrPlp, err := srv.DBConnector.SelectPairLoginPassword(ctxWV)
+							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypePairLoginPassword.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select Pairs login/password DB")
 							}
 						})
 						t.Run("Checking delete Pairs login/password DB", func(t *testing.T) {
-							err := srv.DBConnector.DelPairLoginPassword(&plp)
+							err := srv.DBConnector.Delete(&plp)
 							if err != nil {
 								t.Errorf("Error delete Pairs login/password DB")
 							}
@@ -128,7 +128,7 @@ func TestFuncClient(t *testing.T) {
 					t.Run("Checking Text data DB", func(t *testing.T) {
 						td := tests.CreateTextData(strToken, "", ck)
 						t.Run("Checking update Text data DB", func(t *testing.T) {
-							err = srv.DBConnector.UpdateTextData(&td)
+							err = srv.DBConnector.Update(&td)
 							if err != nil {
 								t.Errorf("Error update Text data DB")
 							}
@@ -136,13 +136,13 @@ func TestFuncClient(t *testing.T) {
 						t.Run("Checking select Text data DB", func(t *testing.T) {
 							ctx := context.Background()
 							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
-							arrPlp, err := srv.DBConnector.SelectTextData(ctxWV)
+							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypeTextData.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select Text data DB")
 							}
 						})
 						t.Run("Checking delete Text data DB", func(t *testing.T) {
-							err := srv.DBConnector.DelTextData(&td)
+							err := srv.DBConnector.Delete(&td)
 							if err != nil {
 								t.Errorf("Error delete Text data DB")
 							}
@@ -152,7 +152,7 @@ func TestFuncClient(t *testing.T) {
 					t.Run("Checking Binary data DB", func(t *testing.T) {
 						bd := tests.CreateBinaryData(strToken, "")
 						t.Run("Checking update Binary data DB", func(t *testing.T) {
-							err = srv.DBConnector.UpdateBinaryData(&bd)
+							err = srv.DBConnector.Update(&bd)
 							if err != nil {
 								t.Errorf("Error handlers ping DB")
 							}
@@ -160,13 +160,13 @@ func TestFuncClient(t *testing.T) {
 						t.Run("Checking select Binary data DB", func(t *testing.T) {
 							ctx := context.Background()
 							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
-							arrPlp, err := srv.DBConnector.SelectBinaryData(ctxWV)
+							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypeBinaryData.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select text data DB")
 							}
 						})
 						t.Run("Checking delete Binary data DB", func(t *testing.T) {
-							err := srv.DBConnector.DelBinaryData(&bd)
+							err := srv.DBConnector.Delete(&bd)
 							if err != nil {
 								t.Errorf("Error delete text data DB")
 							}
@@ -176,7 +176,7 @@ func TestFuncClient(t *testing.T) {
 					t.Run("Checking Bank data DB", func(t *testing.T) {
 						bd := tests.CreateBankCard(strToken, "", ck)
 						t.Run("Checking update Bank data DB", func(t *testing.T) {
-							err = srv.DBConnector.UpdateBankCard(&bd)
+							err = srv.DBConnector.Update(&bd)
 							if err != nil {
 								t.Errorf("Error update Bank data DB")
 							}
@@ -184,13 +184,13 @@ func TestFuncClient(t *testing.T) {
 						t.Run("Checking select Bank data DB", func(t *testing.T) {
 							ctx := context.Background()
 							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
-							arrPlp, err := srv.DBConnector.SelectBankCard(ctxWV)
+							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypeBankCardData.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select Bank data DB")
 							}
 						})
 						t.Run("Checking delete Bank data DB", func(t *testing.T) {
-							err := srv.DBConnector.DelBankCard(&bd)
+							err := srv.DBConnector.Delete(&bd)
 							if err != nil {
 								t.Errorf("Error delete Bank data DB")
 							}
@@ -233,7 +233,7 @@ func TestFuncClient(t *testing.T) {
 		})
 
 		t.Run("Checking delete Pairs login/password DB", func(t *testing.T) {
-			err := srv.DBConnector.DelPairLoginPassword(&plp)
+			err := srv.DBConnector.Delete(&plp)
 			if err != nil {
 				t.Errorf("Error delete Pairs login/password DB")
 			}
@@ -297,7 +297,7 @@ func TestFuncClient(t *testing.T) {
 		})
 
 		t.Run("Checking delete Text data DB", func(t *testing.T) {
-			err := srv.DBConnector.DelTextData(&td)
+			err := srv.DBConnector.Delete(&td)
 			if err != nil {
 				t.Errorf("Error delete Text data DB")
 			}
@@ -361,7 +361,7 @@ func TestFuncClient(t *testing.T) {
 		})
 
 		t.Run("Checking delete Binary data DB", func(t *testing.T) {
-			err := srv.DBConnector.DelBinaryData(&bd)
+			err := srv.DBConnector.Delete(&bd)
 			if err != nil {
 				t.Errorf("Error delete Binary data DB")
 			}
@@ -425,7 +425,7 @@ func TestFuncClient(t *testing.T) {
 		})
 
 		t.Run("Checking delete Bank card DB", func(t *testing.T) {
-			err := srv.DBConnector.DelBankCard(&bc)
+			err := srv.DBConnector.Delete(&bc)
 			if err != nil {
 				t.Errorf("Error delete Bank card DB")
 			}

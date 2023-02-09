@@ -163,7 +163,7 @@ func ExampleServer_apiPairLoginPasswordPOST() {
 	plp := tests.CreatePairLoginPassword(strToken, "", ck)
 	uid := plp.Uid
 
-	err := srv.DBConnector.UpdatePairLoginPassword(&plp)
+	err := srv.DBConnector.Update(&plp)
 	if err != nil {
 		return
 	}
@@ -193,7 +193,7 @@ func ExampleServer_apiPairLoginPasswordPOST() {
 	}
 	fmt.Println(msg)
 
-	err = srv.DBConnector.DelPairLoginPassword(&plp)
+	err = srv.DBConnector.Delete(&plp)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
@@ -214,7 +214,7 @@ func ExampleServer_apiTextDataPOST() {
 	td := tests.CreateTextData(strToken, "", ck)
 	uid := td.Uid
 
-	err := srv.DBConnector.UpdateTextData(&td)
+	err := srv.DBConnector.Update(&td)
 	if err != nil {
 		return
 	}
@@ -244,7 +244,7 @@ func ExampleServer_apiTextDataPOST() {
 	}
 	fmt.Println(msg)
 
-	err = srv.DBConnector.DelTextData(&td)
+	err = srv.DBConnector.Delete(&td)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
@@ -264,7 +264,7 @@ func ExampleServer_apiBinaryPOST() {
 	bd := tests.CreateBinaryData(strToken, "")
 	uid := bd.Uid
 
-	err := srv.DBConnector.UpdateBinaryData(&bd)
+	err := srv.DBConnector.Update(&bd)
 	if err != nil {
 		return
 	}
@@ -294,7 +294,7 @@ func ExampleServer_apiBinaryPOST() {
 	}
 	fmt.Println(msg)
 
-	err = srv.DBConnector.DelBinaryData(&bd)
+	err = srv.DBConnector.Delete(&bd)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
@@ -315,7 +315,7 @@ func ExampleServer_apiBankCardPOST() {
 	bc := tests.CreateBankCard(strToken, "", ck)
 	uid := bc.Uid
 
-	err := srv.DBConnector.UpdateBankCard(&bc)
+	err := srv.DBConnector.Update(&bc)
 	if err != nil {
 		return
 	}
@@ -345,7 +345,7 @@ func ExampleServer_apiBankCardPOST() {
 	}
 	fmt.Println(msg)
 
-	err = srv.DBConnector.DelBankCard(&bc)
+	err = srv.DBConnector.Delete(&bc)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
