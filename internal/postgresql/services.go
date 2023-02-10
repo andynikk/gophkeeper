@@ -111,7 +111,7 @@ func CreateModeLDB(Pool *pgxpool.Pool) error {
 
 	_, err = conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS gophkeeper."Users"
 								(
-									"User" character varying(150) COLLATE pg_catalog."default",
+									"User" character varying(150) COLLATE pg_catalog."default" PRIMARY KEY,
 									"Password" character varying(256) COLLATE pg_catalog."default"
 								)
 								

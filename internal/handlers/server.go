@@ -2,17 +2,17 @@ package handlers
 
 import (
 	"context"
+	"gophkeeper/internal/constants"
+	"gophkeeper/internal/environment"
+	"gophkeeper/internal/midware"
+	"gophkeeper/internal/postgresql"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-
-	"gophkeeper/internal/constants"
-	"gophkeeper/internal/environment"
-	"gophkeeper/internal/midware"
-	"gophkeeper/internal/postgresql"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -145,14 +145,15 @@ func (srv *Server) InitConfig() {
 // Удаление из хранилища
 func (srv *Server) SaveDataInDB(ctx context.Context) {
 
+	ticker := time.NewTicker(time.Second / 2)
+
 	for {
 		select {
-		case <-ctx.Done():
-			return
-		default:
-
+		case <-ticker.C:
 			srv.SaveData()
 
+		case <-ctx.Done():
+			return
 		}
 	}
 }
