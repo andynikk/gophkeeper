@@ -17,6 +17,5 @@ func main() {
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
 	c := client.NewClient()
-	f := client.InitForms()
-	f.Run(c)
+	client.InitForms().Run(c)
 }

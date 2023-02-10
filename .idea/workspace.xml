@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0008">
+    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0009">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handlers/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/postgresql/services.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/services.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/client/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/client/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/server/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/server/main.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -193,7 +193,7 @@
       <workItem from="1674651513995" duration="153071000" />
       <workItem from="1675002648102" duration="4276000" />
       <workItem from="1675007337576" duration="208165000" />
-      <workItem from="1675861759749" duration="44670000" />
+      <workItem from="1675861759749" duration="45890000" />
     </task>
     <task id="LOCAL-00001" summary="v0.001">
       <created>1674894125209</created>
@@ -286,7 +286,14 @@
       <option name="project" value="LOCAL" />
       <updated>1675978172212</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="review 1. 0009">
+      <created>1676060768910</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1676060768910</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -316,7 +323,8 @@
     <MESSAGE value="review 1. 0006" />
     <MESSAGE value="review 1. 0007" />
     <MESSAGE value="review 1. 0008" />
-    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0008" />
+    <MESSAGE value="review 1. 0009" />
+    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0009" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
