@@ -16,6 +16,7 @@ import (
 	"gophkeeper/internal/encryption"
 )
 
+// additionalBinaryParameters структура для переноса данных по файлу в websocket загрузки и скачки
 type additionalBinaryParameters struct {
 	patch string
 	uid   string

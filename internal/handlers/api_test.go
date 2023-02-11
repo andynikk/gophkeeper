@@ -7,6 +7,7 @@ import (
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/cryptography"
 	"gophkeeper/internal/environment"
+	"gophkeeper/internal/postgresql"
 	"gophkeeper/internal/postgresql/model"
 	"gophkeeper/internal/tests"
 	"gophkeeper/internal/token"
@@ -90,8 +91,8 @@ func ExampleServer_apiUserRegisterPOST() {
 	}
 	defer conn.Release()
 
-	pc := model.PgxpoolConn{
-		conn,
+	pc := postgresql.PgxpoolConn{
+		Conn: conn,
 	}
 	ctxVW := context.WithValue(ctx, model.KeyContext("data"), &user)
 	err = pc.Delete(ctxVW)
@@ -119,8 +120,8 @@ func ExampleServer_apiUserLoginPOST() {
 	user.HashPassword = cryptography.HashSHA256(user.Password, srv.Key)
 	userName := user.Name
 
-	pc := model.PgxpoolConn{
-		conn,
+	pc := postgresql.PgxpoolConn{
+		Conn: conn,
 	}
 	ctxVW := context.WithValue(ctx, model.KeyContext("data"), &user)
 	err = pc.Insert(ctxVW)

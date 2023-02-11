@@ -43,7 +43,6 @@ func (u *User) InstructionsSelect() (ActionDatabase, error) {
 		User:    u.Name,
 	}
 
-	//[]interface{}{&u.Name, &u.Password},
 	return actionDatabase, nil
 }
 
@@ -67,8 +66,8 @@ func (u *User) InstructionsInsert() (string, interface{}, error) {
 
 // CheckExistence метод объекта User проверяющий на существование в БД, по пользователю и УИДу
 func (u *User) CheckExistence() (string, interface{}, error) {
-	arg := []interface{}{u.Name}
-	return constants.QuerySelectUserWithWhereTemplate, arg, nil
+	arg := []interface{}{u.Name, u.HashPassword}
+	return constants.QuerySelectUserWithPassword, arg, nil
 }
 
 // InstructionsUpdate метод объекта PairLoginPassword. Обновляет объект в БД, по пользователю и УИДу

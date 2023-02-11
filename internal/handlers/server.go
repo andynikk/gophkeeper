@@ -19,8 +19,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// InListUserData мапа для временного хранения информации, которая приехала с сервера.
 type InListUserData map[string]model.Appender
 
+// Server общая структура. Хранит все необходимые данные сервера.
 type Server struct {
 	*mux.Router
 	*postgresql.DBConnector

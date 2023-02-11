@@ -66,6 +66,14 @@ const (
 							WHERE 
 								"User" = $1;`
 
+	//QuerySelectUserWithPassword запрос на выборку пользователя по имени и паролю
+	QuerySelectUserWithPassword = `SELECT 
+								* 
+							FROM 
+								gophkeeper."Users"
+							WHERE 
+								"User" = $1 AND "Password" = $2;`
+
 	//QueryInsertUserTemplate запрос на добавление пользователя по имени
 	QueryInsertUserTemplate = `INSERT INTO 
 								gophkeeper."Users" ("User", "Password") 

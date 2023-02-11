@@ -9,6 +9,7 @@ import (
 	"gophkeeper/internal/constants"
 )
 
+// Claims данные токена, полусенные с сервера
 type Claims struct {
 	Authorized bool
 	User       string

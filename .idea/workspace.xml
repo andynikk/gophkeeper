@@ -4,25 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0010">
-      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/basic.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/other.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/users.go" afterDir="false" />
+    <list default="true" id="ea51e106-301c-4248-aa5e-ba2d29a99123" name="Changes" comment="review 1. 0011">
+      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/bank_card.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/binary_data.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/pair_login_password.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/postgresql/model/text_data.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/client/main_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/client/main_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/server/main_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/server/main_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/client/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/client/events.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/events.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/client/forms.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/forms.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/client/tclient.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/tclient.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/client/websocket.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/client/websocket.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handlers/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/api.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/constants/const.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/constants/const.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/environment/config_server.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/environment/config_server.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handlers/api_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/api_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handlers/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/server.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handlers/websocket.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handlers/websocket.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/postgresql/model.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logger/logger.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/postgresql/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/database.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/postgresql/model/basic.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/model/basic.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/postgresql/model/other.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/postgresql/model/users.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/model/user.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/postgresql/services.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/postgresql/services.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/tests/tests.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/tests/tests.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/token/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/token/token.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,7 +82,7 @@
     "nodejs_package_manager_path": "npm"
   }
 }]]></component>
-  <component name="RunManager" selected="Go Test.go test gophkeeper/internal/handlers (1)">
+  <component name="RunManager" selected="Go Build.Server">
     <configuration name="Client" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="gophkeeper" />
       <working_directory value="$PROJECT_DIR$" />
@@ -220,7 +222,7 @@
       <workItem from="1674651513995" duration="153071000" />
       <workItem from="1675002648102" duration="4276000" />
       <workItem from="1675007337576" duration="208165000" />
-      <workItem from="1675861759749" duration="66861000" />
+      <workItem from="1675861759749" duration="75027000" />
     </task>
     <task id="LOCAL-00001" summary="v0.001">
       <created>1674894125209</created>
@@ -327,7 +329,14 @@
       <option name="project" value="LOCAL" />
       <updated>1676062779893</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="review 1. 0011">
+      <created>1676131396046</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1676131396046</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -359,7 +368,8 @@
     <MESSAGE value="review 1. 0008" />
     <MESSAGE value="review 1. 0009" />
     <MESSAGE value="review 1. 0010" />
-    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0010" />
+    <MESSAGE value="review 1. 0011" />
+    <option name="LAST_COMMIT_MESSAGE" value="review 1. 0011" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
@@ -378,13 +388,18 @@
           <option name="timeStamp" value="849" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/internal/client/websocket.go</url>
-          <line>195</line>
-          <option name="timeStamp" value="914" />
+          <url>file://$PROJECT_DIR$/internal/client/events.go</url>
+          <line>49</line>
+          <option name="timeStamp" value="987" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
+      <configuration name="GoApplicationRunConfiguration">
+        <watch expression="na.GetType()" />
+        <watch expression="na.GetMainText()" />
+        <watch expression="na.GetSecondaryText(c.Config.CryptoKey)" />
+      </configuration>
       <configuration name="GoTestRunConfiguration">
         <watch expression="constants.Logger" />
       </configuration>

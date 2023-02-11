@@ -16,6 +16,7 @@ import (
 	"gophkeeper/internal/constants"
 )
 
+// wsPingData websocket для отправки данных на клиент по имени
 func (srv *Server) wsPingData(conn *websocket.Conn) {
 
 	for {
@@ -65,6 +66,7 @@ func (srv *Server) wsPingData(conn *websocket.Conn) {
 	}
 }
 
+// wsDownloadBinaryData websocket переноса бинарных данных с сервера на клиент.
 func (srv *Server) wsDownloadBinaryData(conn *websocket.Conn, r *http.Request) {
 
 	ctx := context.Background()
@@ -92,6 +94,7 @@ func (srv *Server) wsDownloadBinaryData(conn *websocket.Conn, r *http.Request) {
 	}
 }
 
+// wsDownloadBinaryData websocket переноса бинарных данных с клиента на сервер.
 func (srv *Server) wsBinaryData(conn *websocket.Conn) {
 	for {
 		_, messageContent, err := conn.ReadMessage()
@@ -113,9 +116,14 @@ func (srv *Server) wsBinaryData(conn *websocket.Conn) {
 		ctx := context.Background()
 		connDB, err := srv.Pool.Acquire(ctx)
 		if err != nil {
+			constants.Logger.ErrorLog(err)
 			return
 		}
-		if err = pbd.Insert(ctx, connDB); err != nil {
+		defer connDB.Release()
+
+		ctxVW := context.WithValue(ctx, model.KeyContext("data"), pbd)
+		if err = srv.DBConnector.InsertPortionBinaryData(ctxVW); err != nil {
+			constants.Logger.ErrorLog(err)
 			return
 		}
 		connDB.Release()

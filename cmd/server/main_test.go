@@ -209,8 +209,8 @@ func TestFuncClient(t *testing.T) {
 		return
 	}
 	defer conn.Release()
-	pc := model.PgxpoolConn{
-		conn,
+	pc := postgresql.PgxpoolConn{
+		Conn: conn,
 	}
 
 	t.Run("Checking methods Pair login/password", func(t *testing.T) {

@@ -115,16 +115,16 @@ func (c *Client) wsDataRead(ctx context.Context, conn *websocket.Conn) {
 					continue
 				}
 
-				err = json.Unmarshal(j, &na)
+				err = json.Unmarshal(j, &na.Updater)
 				if err != nil {
 					constants.Logger.ErrorLog(err)
 					continue
 				}
 
 				newDL := postgresql.DataList{
-					TypeResponse:  na.GetType(),
-					MainText:      na.GetMainText(),
-					SecondaryText: na.GetSecondaryText(c.Config.CryptoKey),
+					TypeResponse:  na.Updater.GetType(),
+					MainText:      na.Updater.GetMainText(),
+					SecondaryText: na.Updater.GetSecondaryText(c.Config.CryptoKey),
 				}
 				c.DataList[na.GetType()] = append(c.DataList[na.GetType()], newDL)
 			}

@@ -5,6 +5,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Logger структура для обертки логирования на базе библиотеки zerolog.
 type Logger struct {
 	Log zerolog.Logger
 }
