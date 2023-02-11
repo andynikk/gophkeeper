@@ -10,7 +10,7 @@ import (
 	"gophkeeper/internal/cryptography"
 	"gophkeeper/internal/encryption"
 	"gophkeeper/internal/environment"
-	"gophkeeper/internal/postgresql"
+	"gophkeeper/internal/postgresql/model"
 	"gophkeeper/internal/tests"
 	"gophkeeper/internal/token"
 	"io"
@@ -275,7 +275,7 @@ func TestFuncClient(t *testing.T) {
 
 	t.Run("Checking login User", func(t *testing.T) {
 
-		testStruct := postgresql.User{
+		testStruct := model.User{
 			Name:         "user1",
 			Password:     "password",
 			HashPassword: "",
@@ -309,7 +309,7 @@ func TestFuncClient(t *testing.T) {
 
 	t.Run("Checking register User", func(t *testing.T) {
 
-		testStruct := postgresql.User{
+		testStruct := model.User{
 			Name:         "user1",
 			Password:     "password",
 			HashPassword: "",

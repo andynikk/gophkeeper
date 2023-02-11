@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gophkeeper/internal/postgresql/model"
 	"net/http"
 	"os"
 
@@ -13,7 +14,6 @@ import (
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/constants/errs"
 	"gophkeeper/internal/encryption"
-	"gophkeeper/internal/postgresql"
 )
 
 type additionalBinaryParameters struct {
@@ -31,10 +31,10 @@ func (c *Client) createEncryptionKey(k encryption.KeyRSA) error {
 }
 
 // downloadBinaryData событие формы, которое загружает файл с сервера и сохраняет на клиенте
-func (c *Client) downloadBinaryData(bd postgresql.BinaryData) error {
+func (c *Client) downloadBinaryData(bd model.BinaryData) error {
 
 	ctx := context.Background()
-	ctxWV := context.WithValue(ctx, postgresql.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
+	ctxWV := context.WithValue(ctx, model.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
 		patch: bd.DownloadPatch,
 		uid:   bd.Uid,
 	})
@@ -43,7 +43,7 @@ func (c *Client) downloadBinaryData(bd postgresql.BinaryData) error {
 }
 
 // inputLoginUser событие формы, позволяет залогинится пользователю. Проверяется по имени и хешу пароля
-func (c *Client) inputLoginUser(user postgresql.User) error {
+func (c *Client) inputLoginUser(user model.User) error {
 
 	addressPost := fmt.Sprintf("http://%s/api/user/login", c.Config.Address) //a.cfg.Address)
 	arrJSON, err := json.MarshalIndent(user, "", " ")
@@ -86,7 +86,7 @@ func (c *Client) inputLoginUser(user postgresql.User) error {
 }
 
 // inputPairLoginPassword событие формы, которое работает данными типа "пары логин/пароль"
-func (c *Client) inputPairLoginPassword(plp postgresql.PairLoginPassword) error {
+func (c *Client) inputPairLoginPassword(plp model.PairLoginPassword) error {
 	addressPost := fmt.Sprintf("http://%s/api/resource/pairs", c.Config.Address) //a.cfg.Address)
 	plpJSON, err := json.MarshalIndent(plp, "", " ")
 	if err != nil {
@@ -97,7 +97,7 @@ func (c *Client) inputPairLoginPassword(plp postgresql.PairLoginPassword) error 
 }
 
 // inputTextData событие формы, которое работают с данными типа "произвольные текстовые данные"
-func (c *Client) inputTextData(td postgresql.TextData) error {
+func (c *Client) inputTextData(td model.TextData) error {
 	addressPost := fmt.Sprintf("http://%s/api/resource/text", c.Config.Address) //a.cfg.Address)
 
 	td.Text = encryption.EncryptString(td.Text, c.Config.CryptoKey)
@@ -111,7 +111,7 @@ func (c *Client) inputTextData(td postgresql.TextData) error {
 }
 
 // inputBinaryData событие формы, которое работают с данными типа "произвольные бинарные данные"
-func (c *Client) inputBinaryData(bd postgresql.BinaryData) error {
+func (c *Client) inputBinaryData(bd model.BinaryData) error {
 	addressPost := fmt.Sprintf("http://%s/api/resource/binary", c.Config.Address) //a.cfg.Address)
 
 	bdJSON, err := json.MarshalIndent(bd, "", " ")
@@ -123,7 +123,7 @@ func (c *Client) inputBinaryData(bd postgresql.BinaryData) error {
 
 	if bd.Event != constants.EventDel.String() {
 		ctx := context.Background()
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
+		ctxWV := context.WithValue(ctx, model.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
 			patch: bd.Patch,
 			uid:   bd.Uid,
 		})
@@ -134,7 +134,7 @@ func (c *Client) inputBinaryData(bd postgresql.BinaryData) error {
 }
 
 // inputBankCard событие формы, которое работают с данными типа "данные банковских карт"
-func (c *Client) inputBankCard(bc postgresql.BankCard) error {
+func (c *Client) inputBankCard(bc model.BankCard) error {
 	addressPost := fmt.Sprintf("http://%s/api/resource/card", c.Config.Address)
 
 	bc.Number = encryption.EncryptString(bc.Number, c.Config.CryptoKey)
@@ -150,7 +150,7 @@ func (c *Client) inputBankCard(bc postgresql.BankCard) error {
 }
 
 // inputBankCard событие формы, которое работает с регистрацией нового пользователя
-func (c *Client) registerNewUser(user postgresql.User) error {
+func (c *Client) registerNewUser(user model.User) error {
 
 	addressPost := fmt.Sprintf("http://%s/api/user/register", c.Config.Address) //a.cfg.Address)
 

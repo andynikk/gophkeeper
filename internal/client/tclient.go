@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/encryption"
-	"gophkeeper/internal/postgresql"
+	"gophkeeper/internal/postgresql/model"
 	"strings"
 	"time"
 
@@ -126,22 +126,22 @@ func (f *Forms) Run(c *Client) {
 			return nil
 		case constants.Key4: //4
 			f.Form.Clear(true)
-			f.openPairLoginPasswordForms(c, postgresql.PairLoginPassword{})
+			f.openPairLoginPasswordForms(c, model.PairLoginPassword{})
 			f.Pages.SwitchToPage("PairLoginPassword")
 			return nil
 		case constants.Key5: //5
 			f.Form.Clear(true)
-			f.openTextDataForms(c, postgresql.TextData{})
+			f.openTextDataForms(c, model.TextData{})
 			f.Pages.SwitchToPage("TextData")
 			return nil
 		case constants.Key6: //6
 			f.Form.Clear(true)
-			f.openBinaryDataForms(c, postgresql.BinaryData{})
+			f.openBinaryDataForms(c, model.BinaryData{})
 			f.Pages.SwitchToPage("BinaryData")
 			return nil
 		case constants.Key7: //7
 			f.Form.Clear(true)
-			f.openBankCardForms(c, postgresql.BankCard{})
+			f.openBankCardForms(c, model.BankCard{})
 			f.Pages.SwitchToPage("BankCard")
 			return nil
 		}

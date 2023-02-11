@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"gophkeeper/internal/postgresql/model"
 	"os"
 	"strconv"
 	"strings"
@@ -11,13 +12,12 @@ import (
 
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/encryption"
-	"gophkeeper/internal/postgresql"
 )
 
 // openRegisterForms отображает окно входа пользователя в систему
 func (f *Forms) openLoginForm(c *Client) {
 
-	user := postgresql.User{}
+	user := model.User{}
 	f.Form.AddInputField("name", "", 20, nil, func(name string) {
 		user.Name = name
 	})
@@ -45,7 +45,7 @@ func (f *Forms) openLoginForm(c *Client) {
 // openRegisterForms отображает окно регистрации нового пользователя
 func (f *Forms) openRegisterForms(c *Client) {
 
-	user := postgresql.User{}
+	user := model.User{}
 	f.Form.AddInputField("name", "", 20, nil, func(name string) {
 		user.Name = name
 	})
@@ -83,7 +83,7 @@ func (f *Forms) openListForms(c *Client) {
 					case constants.TypePairLoginPassword.String():
 
 						arrSecondaryText := strings.Split(secondaryText, ":::")
-						plp := postgresql.PairLoginPassword{
+						plp := model.PairLoginPassword{
 							Uid:      arrMainText[1],
 							TypePair: arrSecondaryText[0],
 							Name:     arrSecondaryText[1],
@@ -93,7 +93,7 @@ func (f *Forms) openListForms(c *Client) {
 						f.Pages.SwitchToPage("PairLoginPassword")
 
 					case constants.TypeTextData.String():
-						td := postgresql.TextData{
+						td := model.TextData{
 							Uid:  arrMainText[1],
 							Text: secondaryText,
 						}
@@ -101,7 +101,7 @@ func (f *Forms) openListForms(c *Client) {
 						f.Pages.SwitchToPage("TextData")
 					case constants.TypeBinaryData.String():
 						arrSecondaryText := strings.Split(secondaryText, ":::")
-						bd := postgresql.BinaryData{
+						bd := model.BinaryData{
 							Uid:       arrMainText[1],
 							Name:      arrSecondaryText[0],
 							Expansion: arrSecondaryText[1],
@@ -112,7 +112,7 @@ func (f *Forms) openListForms(c *Client) {
 						f.Pages.SwitchToPage("BinaryData")
 					case constants.TypeBankCardData.String():
 						arrSecondaryText := strings.Split(secondaryText, ":::")
-						bd := postgresql.BankCard{
+						bd := model.BankCard{
 							Uid:    arrMainText[1],
 							Number: arrSecondaryText[0],
 							Cvc:    arrSecondaryText[1],
@@ -128,7 +128,7 @@ func (f *Forms) openListForms(c *Client) {
 }
 
 // openPairLoginPasswordForms отображает окно для ввода и действий данных типа "пары логин/пароль"
-func (f *Forms) openPairLoginPasswordForms(c *Client, plp postgresql.PairLoginPassword) {
+func (f *Forms) openPairLoginPasswordForms(c *Client, plp model.PairLoginPassword) {
 
 	if plp.Uid == "" {
 		id := uuid.New()
@@ -178,7 +178,7 @@ func (f *Forms) openPairLoginPasswordForms(c *Client, plp postgresql.PairLoginPa
 }
 
 // openTextDataForms отображает окно для ввода и действий данных типа "произвольные текстовые данные"
-func (f *Forms) openTextDataForms(c *Client, td postgresql.TextData) {
+func (f *Forms) openTextDataForms(c *Client, td model.TextData) {
 
 	td.User = c.Token
 
@@ -218,7 +218,7 @@ func (f *Forms) openTextDataForms(c *Client, td postgresql.TextData) {
 }
 
 // openBinaryDataForms отображает окно для ввода и действий данных типа "произвольные бинарные данные"
-func (f *Forms) openBinaryDataForms(c *Client, bd postgresql.BinaryData) {
+func (f *Forms) openBinaryDataForms(c *Client, bd model.BinaryData) {
 
 	bd.User = c.Token
 
@@ -289,7 +289,7 @@ func (f *Forms) openBinaryDataForms(c *Client, bd postgresql.BinaryData) {
 }
 
 // openBankCardForms отображает окно для ввода и действий данных типа "данные банковских карт"
-func (f *Forms) openBankCardForms(c *Client, bc postgresql.BankCard) {
+func (f *Forms) openBankCardForms(c *Client, bc model.BankCard) {
 
 	bc.User = c.Token
 

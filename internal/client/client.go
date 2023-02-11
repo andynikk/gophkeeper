@@ -4,6 +4,7 @@ package client
 import (
 	"gophkeeper/internal/environment"
 	"gophkeeper/internal/postgresql"
+	"gophkeeper/internal/postgresql/model"
 )
 
 // ListUserData Список данных пользователя. Заполняется горутиной, котрая запускается
@@ -15,7 +16,7 @@ type ListUserData map[string][]postgresql.DataList
 // Свойство User хранит имя в явном виде.
 // Свойство Token в виде jwt токена.
 type AuthorizedUser struct {
-	postgresql.User
+	model.User
 	Token string
 }
 

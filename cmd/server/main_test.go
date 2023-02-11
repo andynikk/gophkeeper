@@ -6,6 +6,7 @@ import (
 	"gophkeeper/internal/cryptography"
 	"gophkeeper/internal/handlers"
 	"gophkeeper/internal/postgresql"
+	"gophkeeper/internal/postgresql/model"
 	"gophkeeper/internal/tests"
 	"gophkeeper/internal/token"
 	"testing"
@@ -58,7 +59,7 @@ func TestFuncClient(t *testing.T) {
 	tc := token.NewClaims("test")
 	strToken, _ := tc.GenerateJWT()
 	ck := "test crypto key"
-	claims, _ := token.ExtractClaims(strToken)
+	//claims, _ := token.ExtractClaims(strToken)
 
 	t.Run("Checking DB", func(t *testing.T) {
 		t.Run("Checking create DB table", func(t *testing.T) {
@@ -75,7 +76,7 @@ func TestFuncClient(t *testing.T) {
 							t.Errorf("Error create user DB user")
 						}
 
-						err := srv.DBConnector.CheckAccount(user)
+						err = srv.DBConnector.CheckAccount(&user)
 						if err != nil {
 							t.Errorf("Error create user DB user")
 						}
@@ -95,7 +96,7 @@ func TestFuncClient(t *testing.T) {
 							t.Errorf("Error delete ping DB")
 						}
 
-						err := srv.DBConnector.CheckAccount(user)
+						err = srv.DBConnector.CheckAccount(&user)
 						if err == nil {
 							t.Errorf("Error delete user DB user")
 						}
@@ -111,7 +112,7 @@ func TestFuncClient(t *testing.T) {
 						})
 						t.Run("Checking select Pairs login/password DB", func(t *testing.T) {
 							ctx := context.Background()
-							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
+							ctxWV := context.WithValue(ctx, model.KeyContext("user"), strToken)
 							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypePairLoginPassword.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select Pairs login/password DB")
@@ -135,7 +136,7 @@ func TestFuncClient(t *testing.T) {
 						})
 						t.Run("Checking select Text data DB", func(t *testing.T) {
 							ctx := context.Background()
-							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
+							ctxWV := context.WithValue(ctx, model.KeyContext("user"), strToken)
 							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypeTextData.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select Text data DB")
@@ -159,7 +160,7 @@ func TestFuncClient(t *testing.T) {
 						})
 						t.Run("Checking select Binary data DB", func(t *testing.T) {
 							ctx := context.Background()
-							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
+							ctxWV := context.WithValue(ctx, model.KeyContext("user"), strToken)
 							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypeBinaryData.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select text data DB")
@@ -183,7 +184,7 @@ func TestFuncClient(t *testing.T) {
 						})
 						t.Run("Checking select Bank data DB", func(t *testing.T) {
 							ctx := context.Background()
-							ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), claims["user"])
+							ctxWV := context.WithValue(ctx, model.KeyContext("user"), strToken)
 							arrPlp, err := srv.DBConnector.Select(ctxWV, constants.TypeBankCardData.String())
 							if err != nil || len(arrPlp) == 0 {
 								t.Errorf("Error select Bank data DB")
@@ -208,25 +209,32 @@ func TestFuncClient(t *testing.T) {
 		return
 	}
 	defer conn.Release()
+	pc := model.PgxpoolConn{
+		conn,
+	}
 
 	t.Run("Checking methods Pair login/password", func(t *testing.T) {
 		plp := tests.CreatePairLoginPassword(strToken, "", ck)
 		t.Run("Checking method 'CheckExistence' Pair login/password", func(t *testing.T) {
-			_, err := plp.CheckExistence(ctx, conn)
+
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &plp)
+			_, err = pc.CheckExistence(ctxVW)
 			if err != nil {
-				t.Errorf("Error method 'CheckExistence' Pair login/password DB")
+				t.Errorf("Error method 'CheckExistence' Bank card DB")
 			}
 		})
 
 		t.Run("Checking method 'Insert' Pair login/password", func(t *testing.T) {
-			err = plp.Insert(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &plp)
+			err = pc.Insert(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Pair login/password DB")
 			}
 		})
 
 		t.Run("Checking method 'Update' Pair login/password", func(t *testing.T) {
-			err = plp.Update(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &plp)
+			err = pc.Update(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Pair login/password DB")
 			}
@@ -263,7 +271,7 @@ func TestFuncClient(t *testing.T) {
 		t.Run("Checking method 'SetFromInListUserData' Pair login/password", func(t *testing.T) {
 			plpInListUserData, ok := srv.InListUserData[constants.TypePairLoginPassword.String()]
 			if !ok {
-				plpInListUserData = postgresql.Appender{}
+				plpInListUserData = model.Appender{}
 			}
 			plp.SetFromInListUserData(plpInListUserData)
 
@@ -276,21 +284,24 @@ func TestFuncClient(t *testing.T) {
 	t.Run("Checking methods Text data", func(t *testing.T) {
 		td := tests.CreateTextData(strToken, "", ck)
 		t.Run("Checking method 'CheckExistence' Text data", func(t *testing.T) {
-			_, err := td.CheckExistence(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &td)
+			_, err = pc.CheckExistence(ctxVW)
 			if err != nil {
-				t.Errorf("Error method 'CheckExistence' Text data DB")
+				t.Errorf("Error method 'CheckExistence' Bank card DB")
 			}
 		})
 
 		t.Run("Checking method 'Insert' Text data", func(t *testing.T) {
-			err = td.Insert(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &td)
+			err = pc.Insert(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Text data DB")
 			}
 		})
 
 		t.Run("Checking method 'Update' Text data", func(t *testing.T) {
-			err = td.Update(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &td)
+			err = pc.Update(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Text data DB")
 			}
@@ -327,7 +338,7 @@ func TestFuncClient(t *testing.T) {
 		t.Run("Checking method 'SetFromInListUserData' Text data", func(t *testing.T) {
 			plpInListUserData, ok := srv.InListUserData[constants.TypeTextData.String()]
 			if !ok {
-				plpInListUserData = postgresql.Appender{}
+				plpInListUserData = model.Appender{}
 			}
 			td.SetFromInListUserData(plpInListUserData)
 
@@ -340,21 +351,24 @@ func TestFuncClient(t *testing.T) {
 	t.Run("Checking methods Binary data", func(t *testing.T) {
 		bd := tests.CreateBinaryData(strToken, "")
 		t.Run("Checking method 'CheckExistence' Binary data", func(t *testing.T) {
-			_, err := bd.CheckExistence(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &bd)
+			_, err = pc.CheckExistence(ctxVW)
 			if err != nil {
-				t.Errorf("Error method 'CheckExistence' Binary data DB")
+				t.Errorf("Error method 'CheckExistence' Bank card DB")
 			}
 		})
 
 		t.Run("Checking method 'Insert' Binary data", func(t *testing.T) {
-			err = bd.Insert(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &bd)
+			err = pc.Insert(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Binary data DB")
 			}
 		})
 
 		t.Run("Checking method 'Update' Binary data", func(t *testing.T) {
-			err = bd.Update(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &bd)
+			err = pc.Update(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Binary data DB")
 			}
@@ -391,7 +405,7 @@ func TestFuncClient(t *testing.T) {
 		t.Run("Checking method 'SetFromInListUserData' Binary data", func(t *testing.T) {
 			plpInListUserData, ok := srv.InListUserData[constants.TypeBinaryData.String()]
 			if !ok {
-				plpInListUserData = postgresql.Appender{}
+				plpInListUserData = model.Appender{}
 			}
 			bd.SetFromInListUserData(plpInListUserData)
 
@@ -404,21 +418,24 @@ func TestFuncClient(t *testing.T) {
 	t.Run("Checking methods Bank card", func(t *testing.T) {
 		bc := tests.CreateBankCard(strToken, "", ck)
 		t.Run("Checking method 'CheckExistence' Bank card", func(t *testing.T) {
-			_, err := bc.CheckExistence(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &bc)
+			_, err = pc.CheckExistence(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'CheckExistence' Bank card DB")
 			}
 		})
 
 		t.Run("Checking method 'Insert' Bank card", func(t *testing.T) {
-			err = bc.Insert(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &bc)
+			err = pc.Insert(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Bank card DB")
 			}
 		})
 
 		t.Run("Checking method 'Update' Bank card", func(t *testing.T) {
-			err = bc.Update(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &bc)
+			err = pc.Update(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' Bank card DB")
 			}
@@ -455,7 +472,7 @@ func TestFuncClient(t *testing.T) {
 		t.Run("Checking method 'SetFromInListUserData' Bank card", func(t *testing.T) {
 			plpInListUserData, ok := srv.InListUserData[constants.TypeBankCardData.String()]
 			if !ok {
-				plpInListUserData = postgresql.Appender{}
+				plpInListUserData = model.Appender{}
 			}
 			bc.SetFromInListUserData(plpInListUserData)
 
@@ -468,21 +485,24 @@ func TestFuncClient(t *testing.T) {
 	t.Run("Checking methods User", func(t *testing.T) {
 		usr := tests.CreateUser("")
 		t.Run("Checking method 'Insert' User", func(t *testing.T) {
-			err = usr.Insert(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &usr)
+			err = pc.Insert(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Insert' User DB")
 			}
 		})
 
 		t.Run("Checking method 'CheckExistence' User", func(t *testing.T) {
-			_, err := usr.CheckExistence(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &usr)
+			_, err = pc.CheckExistence(ctxVW)
 			if err != nil {
-				t.Errorf("Error method 'CheckExistence' User DB")
+				t.Errorf("Error method 'CheckExistence' Bank card DB")
 			}
 		})
 
 		t.Run("Checking method 'Delete' User", func(t *testing.T) {
-			err = usr.Delete(ctx, conn)
+			ctxVW := context.WithValue(ctx, model.KeyContext("data"), &usr)
+			err = pc.Delete(ctxVW)
 			if err != nil {
 				t.Errorf("Error method 'Delete' User DB")
 			}
@@ -491,7 +511,7 @@ func TestFuncClient(t *testing.T) {
 		t.Run("Checking method 'SetFromInListUserData' User", func(t *testing.T) {
 			plpInListUserData, ok := srv.InListUserData[constants.TypeUserData.String()]
 			if !ok {
-				plpInListUserData = postgresql.Appender{}
+				plpInListUserData = model.Appender{}
 			}
 			usr.SetFromInListUserData(plpInListUserData)
 

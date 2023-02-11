@@ -7,6 +7,7 @@ import (
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/cryptography"
 	"gophkeeper/internal/environment"
+	"gophkeeper/internal/postgresql/model"
 	"gophkeeper/internal/tests"
 	"gophkeeper/internal/token"
 	"net/http"
@@ -88,7 +89,12 @@ func ExampleServer_apiUserRegisterPOST() {
 		return
 	}
 	defer conn.Release()
-	err = user.Delete(ctx, conn)
+
+	pc := model.PgxpoolConn{
+		conn,
+	}
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), &user)
+	err = pc.Delete(ctxVW)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}
@@ -113,7 +119,11 @@ func ExampleServer_apiUserLoginPOST() {
 	user.HashPassword = cryptography.HashSHA256(user.Password, srv.Key)
 	userName := user.Name
 
-	err = user.Insert(ctx, conn)
+	pc := model.PgxpoolConn{
+		conn,
+	}
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), &user)
+	err = pc.Insert(ctxVW)
 	if err != nil {
 		return
 	}
@@ -142,7 +152,7 @@ func ExampleServer_apiUserLoginPOST() {
 	}
 	fmt.Println(msg)
 
-	err = user.Delete(ctx, conn)
+	err = pc.Delete(ctxVW)
 	if err != nil {
 		constants.Logger.ErrorLog(err)
 	}

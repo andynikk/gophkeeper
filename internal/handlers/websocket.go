@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gophkeeper/internal/postgresql/model"
 	"gophkeeper/internal/token"
 	"log"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 
 	"gophkeeper/internal/compression"
 	"gophkeeper/internal/constants"
-	"gophkeeper/internal/postgresql"
 )
 
 func (srv *Server) wsPingData(conn *websocket.Conn) {
@@ -35,10 +35,10 @@ func (srv *Server) wsPingData(conn *websocket.Conn) {
 			continue
 		}
 
-		app := postgresql.Appender{}
+		app := model.Appender{}
 
 		ctx := context.Background()
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), tkn)
+		ctxWV := context.WithValue(ctx, model.KeyContext("user"), tkn)
 
 		arrType := []string{constants.TypePairLoginPassword.String(), constants.TypeTextData.String(),
 			constants.TypeBinaryData.String(), constants.TypeBankCardData.String()}
@@ -68,7 +68,7 @@ func (srv *Server) wsPingData(conn *websocket.Conn) {
 func (srv *Server) wsDownloadBinaryData(conn *websocket.Conn, r *http.Request) {
 
 	ctx := context.Background()
-	ctxWV := context.WithValue(ctx, postgresql.KeyContext("uid"), r.Header.Get("UID"))
+	ctxWV := context.WithValue(ctx, model.KeyContext("uid"), r.Header.Get("UID"))
 
 	arrPbd, err := srv.DBConnector.SelectPortionBinaryData(ctxWV)
 	if err != nil {
@@ -104,7 +104,7 @@ func (srv *Server) wsBinaryData(conn *websocket.Conn) {
 			constants.Logger.ErrorLog(err)
 		}
 
-		pbd := postgresql.PortionBinaryData{}
+		pbd := model.PortionBinaryData{}
 		if err = json.Unmarshal(messageContent, &pbd); err != nil {
 			constants.Logger.ErrorLog(err)
 			return

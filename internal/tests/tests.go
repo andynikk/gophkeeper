@@ -3,23 +3,24 @@ package tests
 
 import (
 	"gophkeeper/internal/constants"
+	"gophkeeper/internal/cryptography"
 	"gophkeeper/internal/encryption"
-	"gophkeeper/internal/postgresql"
+	"gophkeeper/internal/postgresql/model"
 )
 
 // CreateUser создание сущности User для тестов
-func CreateUser(event string) postgresql.User {
-	return postgresql.User{
+func CreateUser(event string) model.User {
+	return model.User{
 		Name:         "test",
 		Password:     "password",
-		HashPassword: "",
+		HashPassword: cryptography.HashSHA256("password", string(constants.HashKey)),
 		Event:        event,
 	}
 }
 
 // CreatePairLoginPassword создание сущности PairLoginPassword для тестов
-func CreatePairLoginPassword(token, event, cryptoKey string) postgresql.PairLoginPassword {
-	return postgresql.PairLoginPassword{
+func CreatePairLoginPassword(token, event, cryptoKey string) model.PairLoginPassword {
+	return model.PairLoginPassword{
 		User:     token,
 		Uid:      "bf340769-687e-485e-968b-976cf12f7b64",
 		TypePair: encryption.EncryptString(constants.TypePairLoginPassword.String(), cryptoKey),
@@ -30,8 +31,8 @@ func CreatePairLoginPassword(token, event, cryptoKey string) postgresql.PairLogi
 }
 
 // CreateTextData создание сущности TextData для тестов
-func CreateTextData(token, event, cryptoKey string) postgresql.TextData {
-	return postgresql.TextData{
+func CreateTextData(token, event, cryptoKey string) model.TextData {
+	return model.TextData{
 		User:  token,
 		Uid:   "bf340769-687e-485e-968b-976cf12f7b64",
 		Text:  encryption.EncryptString("Text test", cryptoKey),
@@ -40,8 +41,8 @@ func CreateTextData(token, event, cryptoKey string) postgresql.TextData {
 }
 
 // CreateBinaryData создание сущности BinaryData для тестов
-func CreateBinaryData(token, event string) postgresql.BinaryData {
-	return postgresql.BinaryData{
+func CreateBinaryData(token, event string) model.BinaryData {
+	return model.BinaryData{
 		User:          token,
 		Uid:           "bf340769-687e-485e-968b-976cf12f7b64",
 		Patch:         "./temp.tmp",
@@ -54,8 +55,8 @@ func CreateBinaryData(token, event string) postgresql.BinaryData {
 }
 
 // CreateBankCard создание сущности BankCard для тестов
-func CreateBankCard(token, event, cryptoKey string) postgresql.BankCard {
-	return postgresql.BankCard{
+func CreateBankCard(token, event, cryptoKey string) model.BankCard {
+	return model.BankCard{
 		User:   token,
 		Uid:    "bf340769-687e-485e-968b-976cf12f7b64",
 		Number: encryption.EncryptString("4342 5654 5878 5475", cryptoKey),

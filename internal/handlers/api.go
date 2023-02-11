@@ -4,13 +4,13 @@ package handlers
 import (
 	"encoding/json"
 	"gophkeeper/internal/constants/errs"
+	"gophkeeper/internal/postgresql/model"
 	"io"
 	"net/http"
 	"strings"
 
 	"gophkeeper/internal/compression"
 	"gophkeeper/internal/constants"
-	"gophkeeper/internal/postgresql"
 	"gophkeeper/internal/token"
 )
 
@@ -50,7 +50,7 @@ func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user := postgresql.User{}
+	user := model.User{}
 	if err := json.Unmarshal(body, &user); err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -96,7 +96,7 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user := postgresql.User{}
+	user := model.User{}
 
 	if err := json.Unmarshal(body, &user); err != nil {
 		constants.Logger.ErrorLog(err)
@@ -105,7 +105,7 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenString := ""
-	err = srv.DBConnector.CheckAccount(user)
+	err = srv.DBConnector.CheckAccount(&user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
 		http.Error(w, err.Error(), errs.HTTPErrors(err))
@@ -143,7 +143,7 @@ func (srv *Server) apiPairLoginPasswordPOST(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	var plp postgresql.PairLoginPassword
+	var plp model.PairLoginPassword
 	if err = json.Unmarshal(body, &plp); err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
@@ -157,7 +157,7 @@ func (srv *Server) apiPairLoginPasswordPOST(w http.ResponseWriter, r *http.Reque
 
 	plpInListUserData, ok := srv.InListUserData[constants.TypePairLoginPassword.String()]
 	if !ok {
-		plpInListUserData = postgresql.Appender{}
+		plpInListUserData = model.Appender{}
 	}
 	plp.SetFromInListUserData(plpInListUserData)
 
@@ -167,7 +167,7 @@ func (srv *Server) apiPairLoginPasswordPOST(w http.ResponseWriter, r *http.Reque
 
 // apiTextDataPOST хендлер для работы с данными типа "произвольные текстовые данные"
 func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
-	td := postgresql.TextData{}
+	td := model.TextData{}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -198,7 +198,7 @@ func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
 
 	tdInListUserData, ok := srv.InListUserData[constants.TypeTextData.String()]
 	if !ok {
-		tdInListUserData = postgresql.Appender{}
+		tdInListUserData = model.Appender{}
 	}
 	td.SetFromInListUserData(tdInListUserData)
 
@@ -209,7 +209,7 @@ func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
 
 // apiBinaryPOST хендлер для работы с данными типа "произвольные бинарные данные"
 func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
-	bd := postgresql.BinaryData{}
+	bd := model.BinaryData{}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -240,7 +240,7 @@ func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
 
 	tdInListUserData, ok := srv.InListUserData[constants.TypeBinaryData.String()]
 	if !ok {
-		tdInListUserData = postgresql.Appender{}
+		tdInListUserData = model.Appender{}
 	}
 	bd.SetFromInListUserData(tdInListUserData)
 
@@ -252,7 +252,7 @@ func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
 // apiBankCardPOST хендлер для работы с данными типа "данные банковских карт"
 func (srv *Server) apiBankCardPOST(w http.ResponseWriter, r *http.Request) {
 
-	bc := postgresql.BankCard{}
+	bc := model.BankCard{}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -283,7 +283,7 @@ func (srv *Server) apiBankCardPOST(w http.ResponseWriter, r *http.Request) {
 
 	tdInListUserData, ok := srv.InListUserData[constants.TypeBankCardData.String()]
 	if !ok {
-		tdInListUserData = postgresql.Appender{}
+		tdInListUserData = model.Appender{}
 	}
 	bc.SetFromInListUserData(tdInListUserData)
 	srv.InListUserData[constants.TypeBankCardData.String()] = tdInListUserData

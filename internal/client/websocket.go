@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gophkeeper/internal/postgresql/model"
 	"io"
 	"net/http"
 	"os"
@@ -30,8 +31,8 @@ func (c *Client) wsBinaryData(ctx context.Context) {
 	}
 	defer conn.Close()
 
-	chanOut := make(chan postgresql.PortionBinaryData)
-	abp := ctx.Value(postgresql.KeyContext("additionalBinaryParameters")).(additionalBinaryParameters)
+	chanOut := make(chan model.PortionBinaryData)
+	abp := ctx.Value(model.KeyContext("additionalBinaryParameters")).(additionalBinaryParameters)
 	go c.readFile(abp.patch, chanOut)
 
 	for {
@@ -108,7 +109,7 @@ func (c *Client) wsDataRead(ctx context.Context, conn *websocket.Conn) {
 			for k, v := range result {
 				arrK := strings.Split(k, ":")
 				j, _ := json.Marshal(v)
-				na, err := postgresql.NewAppender(arrK[0], c.User.Name)
+				na, err := model.NewAppender(arrK[0], c.User.Name)
 				if err != nil {
 					constants.Logger.ErrorLog(err)
 					continue
@@ -133,7 +134,7 @@ func (c *Client) wsDataRead(ctx context.Context, conn *websocket.Conn) {
 
 // readFile, горутина режет файлы на кусочки равные константе Step.
 // через какнал chanOut в web socket функции wsBinaryData
-func (c *Client) readFile(pathSource string, chanOut chan postgresql.PortionBinaryData) {
+func (c *Client) readFile(pathSource string, chanOut chan model.PortionBinaryData) {
 
 	file, err := os.Open(pathSource)
 	if err != nil {
@@ -156,7 +157,7 @@ func (c *Client) readFile(pathSource string, chanOut chan postgresql.PortionBina
 			constants.Logger.ErrorLog(err)
 		}
 
-		pbd := postgresql.PortionBinaryData{
+		pbd := model.PortionBinaryData{
 			Body:    encryption.EncryptString(string(b), c.Config.CryptoKey),
 			Portion: pos,
 		}
@@ -176,7 +177,7 @@ func (c *Client) wsDownloadBinaryData(ctx context.Context) {
 		return
 	}
 
-	abp := ctx.Value(postgresql.KeyContext("additionalBinaryParameters")).(additionalBinaryParameters)
+	abp := ctx.Value(model.KeyContext("additionalBinaryParameters")).(additionalBinaryParameters)
 
 	socketUrl := fmt.Sprintf("ws://%s/socket_download_file", c.Config.Address)
 	h := http.Header{}
@@ -201,7 +202,7 @@ func (c *Client) wsDownloadBinaryData(ctx context.Context) {
 			constants.Logger.ErrorLog(err)
 		}
 
-		pbd := postgresql.PortionBinaryData{}
+		pbd := model.PortionBinaryData{}
 		if err = json.Unmarshal(messageContent, &pbd); err != nil {
 			constants.Logger.ErrorLog(err)
 			return

@@ -2,7 +2,7 @@ package postgresql
 
 import (
 	"context"
-	"errors"
+	"gophkeeper/internal/postgresql/model"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -11,89 +11,30 @@ import (
 	"gophkeeper/internal/cryptography"
 )
 
-type Updater interface {
-	CheckExistence(ctx context.Context, conn *pgxpool.Conn) (bool, error)
-	Update(ctx context.Context, conn *pgxpool.Conn) error
-	Insert(ctx context.Context, conn *pgxpool.Conn) error
-	Delete(ctx context.Context, conn *pgxpool.Conn) error
-	Select(ctx context.Context, conn *pgxpool.Conn) (Appender, error)
-
-	SetValue(Appender)
-	GetEvent() string
-
-	GetType() string
-	GetMainText() string
-	GetSecondaryText(string) string
+type AppenderWithType struct {
+	Type  string         `json:"type"`
+	Event string         `json:"event"`
+	Value model.Appender `json:"value"`
 }
 
-// NewAccount метод для создания нового экаунта из ДБ конектора
-// вызывает методы объекта user.
-// Проверяет есть ли такой пользователь.
-// Если нет, то создает
-func (dbc *DBConnector) NewAccount(user *User) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	recordExists, err := user.CheckExistence(ctx, conn)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-
-	if recordExists {
-		return errs.ErrLoginBusy
-	}
-
-	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
-	if _, err = conn.Exec(ctx, constants.QueryInsertUserTemplate, user.Name, user.HashPassword); err != nil {
-		return errs.ErrErrorServer
-	}
-
-	return nil
+type KeyMsg struct {
+	Type string `json:"type"`
+	UID  string `json:"uid"`
 }
 
-// CheckAccount проверяет, по имени и хешированному паролю существует ли пользователь в базе
-func (dbc *DBConnector) CheckAccount(user User) error {
-
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
-
-	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
-	recordExists, err := user.CheckExistence(ctx, conn)
-	if err != nil {
-		return errs.InvalidFormat
-	}
-	if recordExists {
-		return nil
-
-	}
-	conn.Release()
-
-	return errs.ErrInvalidLoginPassword
+type TypeMsg struct {
+	Type  string
+	Token string
 }
 
-// DelAccount удаляет пользователя по имени и хешированному паролю
-func (dbc *DBConnector) DelAccount(user *User) error {
-	ctx := context.Background()
-	conn, err := dbc.Pool.Acquire(ctx)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-	defer conn.Release()
+type InListUserData interface {
+	SetFromInListUserData(model.Appender)
+}
 
-	err = user.Delete(ctx, conn)
-	if err != nil {
-		return errs.ErrErrorServer
-	}
-
-	return nil
+type DataList struct {
+	TypeResponse  string `json:"type"`
+	MainText      string `json:"main_text"`
+	SecondaryText string `json:"secondary_text"`
 }
 
 // CreateModeLDB при запуске сервера создает таблицы, если их не находит
@@ -223,26 +164,86 @@ func CreateModeLDB(Pool *pgxpool.Pool) error {
 	return nil
 }
 
-func NewAppender(t, u string) (Updater, error) {
-	switch t {
-	case constants.TypePairLoginPassword.String():
-		return &PairLoginPassword{User: u}, nil
-	case constants.TypeTextData.String():
-		return &TextData{User: u}, nil
-	case constants.TypeBinaryData.String():
-		return &BinaryData{User: u}, nil
-	case constants.TypeBankCardData.String():
-		return &BankCard{User: u}, nil
-	case constants.TypeUserData.String():
-		return &User{Name: u}, nil
-	default:
-		return nil, errors.New("ошибка определения типа данных")
+// NewAccount метод для создания нового экаунта из ДБ конектора
+// вызывает методы объекта user.
+// Проверяет есть ли такой пользователь.
+// Если нет, то создает
+func (dbc *DBConnector) NewAccount(user *model.User) error {
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
 	}
+	defer conn.Release()
+
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), user)
+	pc := model.PgxpoolConn{conn}
+	recordExists, err := pc.CheckExistence(ctxVW)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+
+	if recordExists {
+		return errs.ErrLoginBusy
+	}
+
+	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
+	if _, err = conn.Exec(ctx, constants.QueryInsertUserTemplate, user.Name, user.HashPassword); err != nil {
+		return errs.ErrErrorServer
+	}
+
+	return nil
 }
 
-func (dbc *DBConnector) Select(ctx context.Context, t string) (Appender, error) {
+// CheckAccount проверяет, по имени и хешированному паролю существует ли пользователь в базе
+func (dbc *DBConnector) CheckAccount(user *model.User) error {
 
-	user := ctx.Value(KeyContext("user"))
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), user)
+	var pc = model.PgxpoolConn{Conn: conn}
+	recordExists, err := pc.CheckExistence(ctxVW)
+	if err != nil {
+		return errs.InvalidFormat
+	}
+	if recordExists {
+		return nil
+
+	}
+	conn.Release()
+
+	return errs.ErrInvalidLoginPassword
+}
+
+// DelAccount удаляет пользователя по имени и хешированному паролю
+func (dbc *DBConnector) DelAccount(user *model.User) error {
+	ctx := context.Background()
+	conn, err := dbc.Pool.Acquire(ctx)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+	defer conn.Release()
+
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), user)
+	pc := model.PgxpoolConn{conn}
+
+	err = pc.Delete(ctxVW)
+	if err != nil {
+		return errs.ErrErrorServer
+	}
+
+	return nil
+}
+
+func (dbc *DBConnector) Select(ctx context.Context, t string) (model.Appender, error) {
+
+	user := ctx.Value(model.KeyContext("user"))
 	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
 		return nil, errs.ErrErrorServer
@@ -250,11 +251,16 @@ func (dbc *DBConnector) Select(ctx context.Context, t string) (Appender, error) 
 	defer conn.Release()
 
 	strUser := user.(string)
-	na, err := NewAppender(t, strUser)
+	na, err := model.NewAppender(t, strUser)
 	if err != nil {
 		return nil, errs.ErrErrorServer
 	}
-	a, err := na.Select(ctx, conn)
+
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), na)
+	pc := model.PgxpoolConn{conn}
+
+	a, err := pc.Select(ctxVW)
+
 	if err != nil {
 		return nil, errs.ErrErrorServer
 	}
@@ -262,7 +268,7 @@ func (dbc *DBConnector) Select(ctx context.Context, t string) (Appender, error) 
 	return a, nil
 }
 
-func (dbc *DBConnector) Update(u Updater) error {
+func (dbc *DBConnector) Update(u model.Updater) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
@@ -270,25 +276,30 @@ func (dbc *DBConnector) Update(u Updater) error {
 	}
 	defer conn.Release()
 
-	recordExists, err := u.CheckExistence(ctx, conn)
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), u)
+	pc := model.PgxpoolConn{conn}
+
+	recordExists, err := pc.CheckExistence(ctxVW)
+
 	if err != nil {
 		return errs.InvalidFormat
 	}
 	if recordExists {
-		if err = u.Update(ctx, conn); err != nil {
+
+		if err = pc.Update(ctxVW); err != nil {
 			return errs.InvalidFormat
 		}
 		return nil
 	}
 
-	if err = u.Insert(ctx, conn); err != nil {
+	if err = pc.Insert(ctxVW); err != nil {
 		return errs.InvalidFormat
 	}
 
 	return nil
 }
 
-func (dbc *DBConnector) Delete(u Updater) error {
+func (dbc *DBConnector) Delete(u model.Updater) error {
 	ctx := context.Background()
 	conn, err := dbc.Pool.Acquire(ctx)
 	if err != nil {
@@ -296,31 +307,34 @@ func (dbc *DBConnector) Delete(u Updater) error {
 	}
 	defer conn.Release()
 
-	err = u.Delete(ctx, conn)
+	ctxVW := context.WithValue(ctx, model.KeyContext("data"), u)
+	pc := model.PgxpoolConn{conn}
+
+	err = pc.Delete(ctxVW)
 	if err != nil {
 		return errs.ErrErrorServer
 	}
 	return nil
 }
 
-func (dbc *DBConnector) Eventing(u Updater) string {
+func (dbc *DBConnector) Eventing(u model.Updater) string {
 	return u.GetEvent()
 }
 
 /////////////////////////////////////
 
-func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]PortionBinaryData, error) {
+func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]*model.PortionBinaryData, error) {
 
-	uid := ctx.Value(KeyContext("uid"))
+	uid := ctx.Value(model.KeyContext("uid"))
 	rows, err := dbc.Pool.Query(ctx, constants.QuerySelectPortionsBinaryData, uid)
 	if err != nil {
 		return nil, errs.InvalidFormat
 	}
 	defer rows.Close()
 
-	var arrPbd []PortionBinaryData
+	var arrPbd []*model.PortionBinaryData
 	for rows.Next() {
-		var pbd PortionBinaryData
+		var pbd *model.PortionBinaryData
 
 		err = rows.Scan(&pbd.Uid, &pbd.Portion, &pbd.Body)
 		if err != nil {

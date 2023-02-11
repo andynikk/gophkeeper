@@ -6,6 +6,7 @@ import (
 	"gophkeeper/internal/environment"
 	"gophkeeper/internal/midware"
 	"gophkeeper/internal/postgresql"
+	"gophkeeper/internal/postgresql/model"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +19,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type InListUserData map[string]postgresql.Appender
+type InListUserData map[string]model.Appender
 
 type Server struct {
 	*mux.Router
