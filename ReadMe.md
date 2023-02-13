@@ -1,12 +1,11 @@
 ## [**Gophkeeper**](https://github.com/andynikk/gophkeeper)
 
-#### **1. Запуск**  
+#### **1. Запуск**
 ##### **1.1 Сервер**  
 Запускается с флагами **-a** адрес сервера **-d** строка соединения с базой  
 **Пример:** *go run main.go -a localhost:8050 -d postgresql://postgres:postgres@localhost:5432/yapracticum*  
 или параметры сеанса: **ADDRESS** и **CRYPTO_KEY**  
-
-##### **1.2 Клиент**  
+##### **1.2 Клиент**
 Запускается с флагами **-a** адрес сервера **-c** файл с криптоключем  
 **Пример:** *go run main.go -a localhost:8080 -c e:\\Bases\\key\\gophkeeper.xor*  
 или параметры сеанса: **ADDRESS** и **DATABASE_URI**  
