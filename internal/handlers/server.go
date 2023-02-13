@@ -19,9 +19,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// InListUserData мапа для временного хранения информации, которая приехала с сервера.
-type InListUserData map[string]model.Appender
-
 // Server общая структура. Хранит все необходимые данные сервера.
 type Server struct {
 	*mux.Router
@@ -29,7 +26,7 @@ type Server struct {
 	*environment.ServerConfig
 
 	sync.Mutex
-	InListUserData
+	InListUserData map[string]model.Appender
 }
 
 // NewServer создание сервера
@@ -40,7 +37,7 @@ func NewServer() *Server {
 	srv.InitDataBase()
 	srv.InitRouters()
 
-	srv.InListUserData = InListUserData{}
+	srv.InListUserData = map[string]model.Appender{}
 
 	return srv
 }

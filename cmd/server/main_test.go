@@ -36,7 +36,7 @@ func TestFuncClient(t *testing.T) {
 		}
 	})
 
-	srv.InListUserData = handlers.InListUserData{}
+	srv.InListUserData = map[string]model.Appender{}
 
 	t.Run("Checking init server", func(t *testing.T) {
 		if srv.ServerConfig.Address == "" {

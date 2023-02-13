@@ -17,5 +17,10 @@ func main() {
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
 	c := client.NewClient()
+	c.BuildInfo = client.BuildInfo{
+		BuildVersion: buildVersion,
+		BuildDate:    buildDate,
+		BuildCommit:  buildCommit,
+	}
 	client.InitForms().Run(c)
 }

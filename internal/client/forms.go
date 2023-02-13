@@ -363,3 +363,13 @@ func (f *Forms) openEncryptionKeyForms(c *Client, k encryption.KeyRSA) {
 		f.Pages.SwitchToPage(constants.NameMainPage)
 	})
 }
+
+// openRegisterForms отображает окно входа пользователя в систему
+func (f *Forms) openInfoForm(c *Client) {
+	f.Form.AddTextView("Build version:", c.BuildVersion, 30, 1, true, false)
+	f.Form.AddTextView("Build date:", c.BuildDate, 30, 1, true, false)
+	f.Form.AddTextView("Build commit:", c.BuildCommit, 150, 1, true, false)
+	f.Form.AddButton("Cancel", func() {
+		f.Pages.SwitchToPage(constants.NameMainPage)
+	})
+}

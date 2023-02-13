@@ -231,22 +231,9 @@ func (dbc *DBConnector) SelectPortionBinaryData(ctx context.Context) ([]model.Po
 func (dbc *DBConnector) InsertPortionBinaryData(ctx context.Context) error {
 
 	pbd := ctx.Value(model.KeyContext("data")).(model.PortionBinaryData)
-	rows, err := dbc.Pool.Query(ctx, constants.QueryInsertPortionsBinaryData, pbd.Uid, pbd.Portion, pbd.Body)
+	_, err := dbc.Pool.Exec(ctx, constants.QueryInsertPortionsBinaryData, pbd.Uid, pbd.Portion, pbd.Body)
 	if err != nil {
 		return errs.InvalidFormat
-	}
-	defer rows.Close()
-
-	var arrPbd []*model.PortionBinaryData
-	for rows.Next() {
-		var pbd *model.PortionBinaryData
-
-		err = rows.Scan(&pbd.Uid, &pbd.Portion, &pbd.Body)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		arrPbd = append(arrPbd, pbd)
 	}
 
 	return nil

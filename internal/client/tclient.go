@@ -37,7 +37,8 @@ func InitForms() *Forms {
 		"(7)   Add bank card details",
 		"(0)   To quit",
 		"",
-		"(Ctrl+K)  Create crypto-key"}
+		"(Ctrl+K)  Create crypto-key",
+		"(Ctrl+I)  Build info"}
 
 	textDefault := strings.Join(arrayEvent, "\n")
 
@@ -90,6 +91,12 @@ func (f *Forms) Run(c *Client) {
 			f.Form.Clear(true)
 			f.openEncryptionKeyForms(c, encryption.KeyRSA{})
 			f.Pages.SwitchToPage("KeyRSA")
+			return nil
+		}
+		if event.Key() == tcell.KeyCtrlI {
+			f.Form.Clear(true)
+			f.openInfoForm(c)
+			f.Pages.SwitchToPage("Info")
 			return nil
 		}
 
@@ -164,6 +171,7 @@ func (f *Forms) Run(c *Client) {
 	f.Pages.AddPage("ListData", f.List, true, false)
 	f.Pages.AddPage("KeyRSA", f.Form, true, false)
 	f.Pages.AddPage("Comment", f.Form, true, false)
+	f.Pages.AddPage("Info", f.Form, true, false)
 
 	if err := f.Application.SetRoot(f.Pages, true).EnableMouse(true).Sync().Run(); err != nil {
 		panic(err)

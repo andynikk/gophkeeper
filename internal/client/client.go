@@ -12,6 +12,12 @@ import (
 // Обновляется каждые 0.5 секунды
 type ListUserData map[string][]postgresql.DataList
 
+type BuildInfo struct {
+	BuildVersion string
+	BuildDate    string
+	BuildCommit  string
+}
+
 // AuthorizedUser структура хранит данные авторизированного пользователя.
 // Свойство User хранит имя в явном виде.
 // Свойство Token в виде jwt токена.
@@ -25,6 +31,7 @@ type Client struct {
 	Config *environment.ClientConfig
 	AuthorizedUser
 	DataList ListUserData
+	BuildInfo
 }
 
 // NewClient Создание и заполнение клиента.
@@ -35,6 +42,7 @@ func NewClient() *Client {
 		Config:         config,
 		AuthorizedUser: AuthorizedUser{},
 		DataList:       ListUserData{},
+		BuildInfo:      BuildInfo{},
 	}
 
 	return &c

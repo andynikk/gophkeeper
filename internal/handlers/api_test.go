@@ -405,5 +405,5 @@ func init() {
 	srv.InitDataBase()
 	srv.InitRouters()
 
-	srv.InListUserData = InListUserData{}
+	srv.InListUserData = map[string]model.Appender{}
 }
