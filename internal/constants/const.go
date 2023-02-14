@@ -1,3 +1,4 @@
+// Package constants: константы
 package constants
 
 import (
@@ -12,8 +13,8 @@ type TypeRecord int
 type EventDB int
 
 const (
-	// TypePairsLoginPassword тип хранимой - информации пары логин/пароль
-	TypePairsLoginPassword TypeRecord = iota
+	// TypePairLoginPassword тип хранимой - информации пары логин/пароль
+	TypePairLoginPassword TypeRecord = iota
 
 	// TypeTextData тип хранимой информации - произвольные текстовые данные
 	TypeTextData
@@ -23,6 +24,12 @@ const (
 
 	// TypeBankCardData тип хранимой информации - данные банковских карт
 	TypeBankCardData
+
+	// TypeUserData тип хранимой информации - пользователи
+	TypeUserData
+
+	// TypeAuthorizationData тип информации - авторизация пользователя
+	TypeAuthorizationData
 )
 
 const (
@@ -45,6 +52,9 @@ const (
 
 	// DefaultColorClient цвет шрифта клиенского приложения
 	DefaultColorClient = tcell.ColorGreen
+
+	//NameMainPage имя основного окна клиентского приложения
+	NameMainPage = "Menu"
 )
 
 const (
@@ -56,11 +66,26 @@ const (
 							WHERE 
 								"User" = $1;`
 
+	//QuerySelectUserWithPassword запрос на выборку пользователя по имени и паролю
+	QuerySelectUserWithPassword = `SELECT 
+								* 
+							FROM 
+								gophkeeper."Users"
+							WHERE 
+								"User" = $1 AND "Password" = $2;`
+
 	//QueryInsertUserTemplate запрос на добавление пользователя по имени
 	QueryInsertUserTemplate = `INSERT INTO 
 								gophkeeper."Users" ("User", "Password") 
 							VALUES
 								($1, $2);`
+
+	//QueryDeleteUserTemplate удаление пользователя
+	QueryDeleteUserTemplate = `DELETE 
+							FROM 
+								gophkeeper."Users"
+							WHERE 
+								"User" = $1 and "Password" = $2`
 
 	//QueryUpdatUserTemplate запрос на изменение пользователя по имени
 	QueryUpdatUserTemplate = `UPDATE gophkeeper."Users" ("User", "Password")
@@ -221,6 +246,18 @@ const (
 							"UID" = $1;`
 ) //PortionsBinaryData
 
+const (
+	KeyCtrlC = 3
+	Key0     = 48
+	Key1     = 49
+	Key2     = 50
+	Key3     = 51
+	Key4     = 52
+	Key5     = 53
+	Key6     = 54
+	Key7     = 55
+)
+
 // HashKey ключ по умолчанию для хешированию паролей
 var HashKey = []byte("taekwondo")
 
@@ -232,7 +269,7 @@ var Logger logger.Logger
 
 // String  func (tr TypeRecord) String() string преобразует тип хранимой информации в строку
 func (tr TypeRecord) String() string {
-	return [...]string{"Pairs login/password", "Text", "Binary", "Bank card"}[tr]
+	return [...]string{"Pairs login/password", "Text", "Binary", "Bank card", "Users", "User authorization"}[tr]
 }
 
 // String  func (e EventDB) String() string string преобразует действие с информацией в строку

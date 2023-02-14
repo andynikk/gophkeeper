@@ -1,3 +1,4 @@
+// Package environment: инициализация конфигурации клиента и сервера
 package environment
 
 import (

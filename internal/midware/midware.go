@@ -1,3 +1,4 @@
+// Package midware: middleware сервера. Проверка на аутетификацию
 package midware
 
 import (
@@ -9,6 +10,8 @@ import (
 	"gophkeeper/internal/constants"
 )
 
+// IsAuthorized middleware проверки пользователя по токену.
+// Если токен валиден, то работа с данными разрешена
 func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -23,6 +26,7 @@ func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handle
 	})
 }
 
+// TokenFindMatches проверки пользователя по токену.
 func TokenFindMatches(endpoint func(http.ResponseWriter, *http.Request), w http.ResponseWriter, r *http.Request) {
 	token, err := jwt.Parse(r.Header["Authorization"][0], func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -41,6 +45,7 @@ func TokenFindMatches(endpoint func(http.ResponseWriter, *http.Request), w http.
 	}
 }
 
+// TokenNotFound действие если токен не валиден
 func TokenNotFound(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 	_, err := w.Write([]byte("Not Authorized"))

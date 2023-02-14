@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gophkeeper/internal/postgresql/model"
 	"net/http"
 	"os"
 
@@ -13,15 +14,16 @@ import (
 	"gophkeeper/internal/constants"
 	"gophkeeper/internal/constants/errs"
 	"gophkeeper/internal/encryption"
-	"gophkeeper/internal/postgresql"
 )
 
+// additionalBinaryParameters структура для переноса данных по файлу в websocket загрузки и скачки
 type additionalBinaryParameters struct {
 	patch string
 	uid   string
 }
 
-func (c *Client) creteEncryptionKey(k encryption.KeyRSA) error {
+// createEncryptionKey событие формы, которое создает ключ для клиента
+func (c *Client) createEncryptionKey(k encryption.KeyRSA) error {
 	if err := os.WriteFile(k.Patch, []byte(k.Key), 0664); err != nil {
 		constants.Logger.ErrorLog(err)
 	}
@@ -29,10 +31,11 @@ func (c *Client) creteEncryptionKey(k encryption.KeyRSA) error {
 	return nil
 }
 
-func (c *Client) downloadBinaryData(bd postgresql.BinaryData) error {
+// downloadBinaryData событие формы, которое загружает файл с сервера и сохраняет на клиенте
+func (c *Client) downloadBinaryData(bd model.BinaryData) error {
 
 	ctx := context.Background()
-	ctxWV := context.WithValue(ctx, postgresql.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
+	ctxWV := context.WithValue(ctx, model.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
 		patch: bd.DownloadPatch,
 		uid:   bd.Uid,
 	})
@@ -40,7 +43,9 @@ func (c *Client) downloadBinaryData(bd postgresql.BinaryData) error {
 	return nil
 }
 
-func (c *Client) inputLoginUser(user postgresql.User) error {
+// inputLoginUser событие формы, позволяет залогинится пользователю. Проверяется по имени и хешу пароля
+func (c *Client) inputLoginUser(user model.User) error {
+
 	addressPost := fmt.Sprintf("http://%s/api/user/login", c.Config.Address) //a.cfg.Address)
 	arrJSON, err := json.MarshalIndent(user, "", " ")
 	if err != nil {
@@ -81,187 +86,73 @@ func (c *Client) inputLoginUser(user postgresql.User) error {
 	return nil
 }
 
-func (c *Client) inputPairsLoginPassword(plp postgresql.PairsLoginPassword, event string) error {
-	addressPost := fmt.Sprintf("http://%s/api/user/pairs/%s", c.Config.Address, event) //a.cfg.Address)
-
-	arrJSON, err := json.MarshalIndent(plp, "", " ")
+// inputPairLoginPassword событие формы, которое работает данными типа "пары логин/пароль"
+func (c *Client) inputPairLoginPassword(plp model.PairLoginPassword) error {
+	addressPost := fmt.Sprintf("http://%s/api/resource/pairs", c.Config.Address) //a.cfg.Address)
+	plpJSON, err := json.MarshalIndent(plp, "", " ")
 	if err != nil {
 		return err
 	}
-
-	compressJSON, err := compression.Compress(arrJSON)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return err
-	}
-
-	body := bytes.NewReader(compressJSON)
-	req, err := http.NewRequest("POST", addressPost, body)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-
-	req.Header.Set("Authorization", c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	defer req.Body.Close()
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errs.ErrInvalidLoginPassword
-	}
-
-	return nil
+	_, err = ExecuteAPI(plpJSON, addressPost, c.Token)
+	return err
 }
 
-func (c *Client) inputTextData(td postgresql.TextData, event string) error {
-	addressPost := fmt.Sprintf("http://%s/api/user/text/%s", c.Config.Address, event) //a.cfg.Address)
+// inputTextData событие формы, которое работают с данными типа "произвольные текстовые данные"
+func (c *Client) inputTextData(td model.TextData) error {
+	addressPost := fmt.Sprintf("http://%s/api/resource/text", c.Config.Address) //a.cfg.Address)
 
-	encryptionTd := postgresql.TextData{}
-	encryptionTd.User = c.Name
-	encryptionTd.Uid = td.Uid
-	encryptionTd.Text = encryption.EncryptString(td.Text, c.Config.CryptoKey)
-
-	arrJSON, err := json.MarshalIndent(encryptionTd, "", " ")
+	td.Text = encryption.EncryptString(td.Text, c.Config.CryptoKey)
+	tdJSON, err := json.MarshalIndent(td, "", " ")
 	if err != nil {
 		return err
 	}
 
-	compressJSON, err := compression.Compress(arrJSON)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return err
-	}
-
-	body := bytes.NewReader(compressJSON)
-	req, err := http.NewRequest("POST", addressPost, body)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-
-	req.Header.Set("Authorization", c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	defer req.Body.Close()
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errs.ErrInvalidLoginPassword
-	}
-
-	return nil
+	_, err = ExecuteAPI(tdJSON, addressPost, c.Token)
+	return err
 }
 
-func (c *Client) inputBinaryData(bd postgresql.BinaryData, event string) error {
-	addressPost := fmt.Sprintf("http://%s/api/user/binary/%s", c.Config.Address, event) //a.cfg.Address)
+// inputBinaryData событие формы, которое работают с данными типа "произвольные бинарные данные"
+func (c *Client) inputBinaryData(bd model.BinaryData) error {
+	addressPost := fmt.Sprintf("http://%s/api/resource/binary", c.Config.Address) //a.cfg.Address)
 
-	arrJSON, err := json.MarshalIndent(bd, "", " ")
+	bdJSON, err := json.MarshalIndent(bd, "", " ")
 	if err != nil {
 		return err
 	}
 
-	compressJSON, err := compression.Compress(arrJSON)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return err
-	}
+	_, err = ExecuteAPI(bdJSON, addressPost, c.Token)
 
-	body := bytes.NewReader(compressJSON)
-	req, err := http.NewRequest("POST", addressPost, body)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-
-	req.Header.Set("Authorization", c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	defer req.Body.Close()
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errs.ErrInvalidLoginPassword
-	}
-
-	if event != constants.EventDel.String() {
+	if bd.Event != constants.EventDel.String() {
 		ctx := context.Background()
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
+		ctxWV := context.WithValue(ctx, model.KeyContext("additionalBinaryParameters"), additionalBinaryParameters{
 			patch: bd.Patch,
 			uid:   bd.Uid,
 		})
 		go c.wsBinaryData(ctxWV)
 	}
-	return nil
+
+	return err
 }
 
-func (c *Client) inputBankCard(bc postgresql.BankCard, event string) error {
-	addressPost := fmt.Sprintf("http://%s/api/user/card/%s", c.Config.Address, event) //a.cfg.Address)
+// inputBankCard событие формы, которое работают с данными типа "данные банковских карт"
+func (c *Client) inputBankCard(bc model.BankCard) error {
+	addressPost := fmt.Sprintf("http://%s/api/resource/card", c.Config.Address)
 
 	bc.Number = encryption.EncryptString(bc.Number, c.Config.CryptoKey)
 	bc.Cvc = encryption.EncryptString(bc.Cvc, c.Config.CryptoKey)
 
-	arrJSON, err := json.MarshalIndent(bc, "", " ")
+	bcJSON, err := json.MarshalIndent(bc, "", " ")
 	if err != nil {
 		return err
 	}
 
-	compressJSON, err := compression.Compress(arrJSON)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return err
-	}
-
-	body := bytes.NewReader(compressJSON)
-	req, err := http.NewRequest("POST", addressPost, body)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-
-	req.Header.Set("Authorization", c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	defer req.Body.Close()
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		constants.Logger.ErrorLog(err)
-		return errors.New("-- ошибка отправки данных на сервер")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errs.ErrInvalidLoginPassword
-	}
-
-	return nil
+	_, err = ExecuteAPI(bcJSON, addressPost, c.Token)
+	return err
 }
 
-func (c *Client) registerNewUser(user postgresql.User) error {
+// inputBankCard событие формы, которое работает с регистрацией нового пользователя
+func (c *Client) registerNewUser(user model.User) error {
+
 	addressPost := fmt.Sprintf("http://%s/api/user/register", c.Config.Address) //a.cfg.Address)
 
 	arrJSON, err := json.MarshalIndent(user, "", " ")
@@ -300,5 +191,41 @@ func (c *Client) registerNewUser(user postgresql.User) error {
 	c.AuthorizedUser.User = user
 	c.AuthorizedUser.Token = resp.Header.Get(constants.HeaderAuthorization)
 
-	return nil
+	return err
+}
+
+// ExecuteAPI общая фукция, которая сжимает в gzip, заполняет токены и отправляет на сервер данные,
+// с которыми нужно произсести действия
+func ExecuteAPI(bJSON []byte, addressPost, token string) (*http.Response, error) {
+	compressJSON, err := compression.Compress(bJSON)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		return nil, err
+	}
+
+	body := bytes.NewReader(compressJSON)
+	req, err := http.NewRequest("POST", addressPost, body)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		return nil, errors.New("-- ошибка отправки данных на сервер")
+	}
+
+	req.Header.Set("Authorization", token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+	defer req.Body.Close()
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		constants.Logger.ErrorLog(err)
+		return nil, errors.New("-- ошибка отправки данных на сервер")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errs.ErrInvalidLoginPassword
+	}
+
+	return resp, nil
 }

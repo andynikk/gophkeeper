@@ -1,3 +1,4 @@
+// Package cryptography: Хеширование паролей пользователей
 package cryptography
 
 import (

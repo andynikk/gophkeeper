@@ -10,6 +10,7 @@ import (
 	"gophkeeper/internal/constants"
 )
 
+// serverConfigENV структура для хранения параметров сеанса
 type serverConfigENV struct {
 	Address     string `env:"ADDRESS" envDefault:"localhost:8080"`
 	DatabaseDsn string `env:"DATABASE_URI"`

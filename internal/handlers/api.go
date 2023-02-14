@@ -1,24 +1,25 @@
+// Package handlers: хендлеры сервера. Отработка действи хендлера
 package handlers
 
 import (
 	"encoding/json"
 	"gophkeeper/internal/constants/errs"
+	"gophkeeper/internal/postgresql/model"
 	"io"
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
-
 	"gophkeeper/internal/compression"
 	"gophkeeper/internal/constants"
-	"gophkeeper/internal/postgresql"
 	"gophkeeper/internal/token"
 )
 
+// handlerNotFound, хендлер адрес не найден
 func (srv *Server) handlerNotFound(rw http.ResponseWriter, r *http.Request) {
 	http.Error(rw, "Page "+r.URL.Path+" not found", http.StatusNotFound)
 }
 
+// handlerNotFound, хендлер начальной страницы сервера
 func (srv *Server) handleFunc(rw http.ResponseWriter, rq *http.Request) {
 
 	if _, err := rw.Write([]byte("Start page")); err != nil {
@@ -29,6 +30,7 @@ func (srv *Server) handleFunc(rw http.ResponseWriter, rq *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
+// apiUserRegisterPOST хендлер создания пользователя
 func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
@@ -48,7 +50,7 @@ func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user := postgresql.User{}
+	user := model.User{}
 	if err := json.Unmarshal(body, &user); err != nil {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -74,6 +76,7 @@ func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// apiUserRegisterPOST хендлер входа пользователя в систему
 func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
@@ -93,7 +96,7 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user := postgresql.User{}
+	user := model.User{}
 
 	if err := json.Unmarshal(body, &user); err != nil {
 		constants.Logger.ErrorLog(err)
@@ -102,7 +105,7 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenString := ""
-	err = srv.DBConnector.GetAccount(user)
+	err = srv.DBConnector.CheckAccount(&user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)
 		http.Error(w, err.Error(), errs.HTTPErrors(err))
@@ -120,9 +123,8 @@ func (srv *Server) apiUserLoginPOST(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (srv *Server) apiPairsLoginPasswordPOST(w http.ResponseWriter, r *http.Request) {
-	event := mux.Vars(r)["event"]
-	plp := postgresql.PairsLoginPassword{}
+// apiPairLoginPasswordPOST хендлер для работы с данными типа "пары логин/пароль"
+func (srv *Server) apiPairLoginPasswordPOST(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -141,31 +143,31 @@ func (srv *Server) apiPairsLoginPasswordPOST(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	if err := json.Unmarshal(body, &plp); err != nil {
+	var plp model.PairLoginPassword
+	if err = json.Unmarshal(body, &plp); err != nil {
 		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if event == constants.EventDel.String() {
-		if err := srv.DBConnector.DelPairsLoginPassword(&plp); err != nil {
-			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), errs.HTTPErrors(err))
-		}
+		http.Error(w, "Ошибка распаковки", http.StatusInternalServerError)
 		return
 	}
 
-	if err := srv.DBConnector.PairsLoginPassword(&plp); err != nil {
-		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), errs.HTTPErrors(err))
-		return
-	}
+	plp.User = r.Header.Get("Authorization")
 
+	srv.Mutex.Lock()
+	defer srv.Mutex.Unlock()
+
+	plpInListUserData, ok := srv.InListUserData[constants.TypePairLoginPassword.String()]
+	if !ok {
+		plpInListUserData = model.Appender{}
+	}
+	plp.SetFromInListUserData(plpInListUserData)
+
+	srv.InListUserData[constants.TypePairLoginPassword.String()] = plpInListUserData
 	w.WriteHeader(http.StatusOK)
 }
 
+// apiTextDataPOST хендлер для работы с данными типа "произвольные текстовые данные"
 func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
-	event := mux.Vars(r)["event"]
-	td := postgresql.TextData{}
+	td := model.TextData{}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -188,26 +190,26 @@ func (srv *Server) apiTextDataPOST(w http.ResponseWriter, r *http.Request) {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	if event == constants.EventDel.String() {
-		if err := srv.DBConnector.DelTextData(&td); err != nil {
-			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), errs.HTTPErrors(err))
-		}
-		return
-	}
 
-	if err := srv.DBConnector.TextData(&td); err != nil {
-		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), errs.HTTPErrors(err))
-		return
-	}
+	td.User = r.Header.Get("Authorization")
 
+	srv.Mutex.Lock()
+	defer srv.Mutex.Unlock()
+
+	tdInListUserData, ok := srv.InListUserData[constants.TypeTextData.String()]
+	if !ok {
+		tdInListUserData = model.Appender{}
+	}
+	td.SetFromInListUserData(tdInListUserData)
+
+	srv.InListUserData[constants.TypeTextData.String()] = tdInListUserData
 	w.WriteHeader(http.StatusOK)
+
 }
 
+// apiBinaryPOST хендлер для работы с данными типа "произвольные бинарные данные"
 func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
-	event := mux.Vars(r)["event"]
-	bd := postgresql.BinaryData{}
+	bd := model.BinaryData{}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -230,26 +232,27 @@ func (srv *Server) apiBinaryPOST(w http.ResponseWriter, r *http.Request) {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	if event == constants.EventDel.String() {
-		if err := srv.DBConnector.DelBinaryData(&bd); err != nil {
-			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), errs.HTTPErrors(err))
-		}
-		return
-	}
 
-	if err := srv.DBConnector.BinaryData(&bd); err != nil {
-		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), errs.HTTPErrors(err))
-		return
+	bd.User = r.Header.Get("Authorization")
+
+	srv.Mutex.Lock()
+	defer srv.Mutex.Unlock()
+
+	tdInListUserData, ok := srv.InListUserData[constants.TypeBinaryData.String()]
+	if !ok {
+		tdInListUserData = model.Appender{}
 	}
+	bd.SetFromInListUserData(tdInListUserData)
+
+	srv.InListUserData[constants.TypeBinaryData.String()] = tdInListUserData
 
 	w.WriteHeader(http.StatusOK)
 }
 
+// apiBankCardPOST хендлер для работы с данными типа "данные банковских карт"
 func (srv *Server) apiBankCardPOST(w http.ResponseWriter, r *http.Request) {
-	event := mux.Vars(r)["event"]
-	bc := postgresql.BankCard{}
+
+	bc := model.BankCard{}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -272,24 +275,23 @@ func (srv *Server) apiBankCardPOST(w http.ResponseWriter, r *http.Request) {
 		constants.Logger.ErrorLog(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	if event == constants.EventDel.String() {
-		if err := srv.DBConnector.DelBankCard(&bc); err != nil {
-			constants.Logger.ErrorLog(err)
-			http.Error(w, err.Error(), errs.HTTPErrors(err))
-		}
-		return
-	}
 
-	if err := srv.DBConnector.BankCard(&bc); err != nil {
-		constants.Logger.ErrorLog(err)
-		http.Error(w, err.Error(), errs.HTTPErrors(err))
-		return
+	bc.User = r.Header.Get("Authorization")
+
+	srv.Mutex.Lock()
+	defer srv.Mutex.Unlock()
+
+	tdInListUserData, ok := srv.InListUserData[constants.TypeBankCardData.String()]
+	if !ok {
+		tdInListUserData = model.Appender{}
 	}
+	bc.SetFromInListUserData(tdInListUserData)
+	srv.InListUserData[constants.TypeBankCardData.String()] = tdInListUserData
 
 	w.WriteHeader(http.StatusOK)
 }
 
-// Shutdown функция отключенния сервера
+// Shutdown функция, работающая при отключеннии сервера
 func (srv *Server) Shutdown() {
 	constants.Logger.InfoLog("server stopped")
 }

@@ -3,106 +3,74 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"gophkeeper/internal/postgresql/model"
+	"gophkeeper/internal/token"
+	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
 	"gophkeeper/internal/compression"
 	"gophkeeper/internal/constants"
-	"gophkeeper/internal/postgresql"
 )
 
-func (srv *Server) wsData(conn *websocket.Conn) {
-	b := []byte("")
+// wsPingData websocket для отправки данных на клиент по имени
+func (srv *Server) wsPingData(conn *websocket.Conn) {
+
 	for {
-		_, messageContent, err := conn.ReadMessage()
+		_, msgToken, err := conn.ReadMessage()
 		if err != nil {
-			constants.Logger.ErrorLog(err)
+			log.Println("ReadMessage() error:", err)
 			return
 		}
-		messageContent, err = compression.Decompress(messageContent)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
+
+		tkn := string(msgToken)
+		if tkn == "" {
+			continue
 		}
+
+		_, ok := token.ExtractClaims(tkn)
+		if !ok {
+			continue
+		}
+
+		app := model.Appender{}
 
 		ctx := context.Background()
-		ctxWV := context.WithValue(ctx, postgresql.KeyContext("user"), string(messageContent))
+		ctxWV := context.WithValue(ctx, model.KeyContext("user"), tkn)
 
-		arrPlp, err := srv.DBConnector.SelectPairsLoginPassword(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
+		arrType := []string{constants.TypePairLoginPassword.String(), constants.TypeTextData.String(),
+			constants.TypeBinaryData.String(), constants.TypeBankCardData.String()}
+
+		for _, t := range arrType {
+			arr, err := srv.DBConnector.Select(ctxWV, t)
+			if err != nil {
+				constants.Logger.ErrorLog(err)
+				continue
+			}
+			for _, val := range arr {
+				app[fmt.Sprintf("%s:%s", t, uuid.New().String())] = val
+			}
 		}
-		plpwt := postgresql.PairsLoginPasswordWithType{Type: constants.TypePairsLoginPassword.String(),
-			PairsLoginPassword: arrPlp}
-		msg, err := json.MarshalIndent(&plpwt, "", " ")
+
+		msg, err := json.MarshalIndent(&app, "", " ")
 		msg, err = compression.Compress(msg)
 		if err != nil {
 			constants.Logger.ErrorLog(err)
 		}
-		if err = conn.WriteMessage(1, msg); err != nil {
+		if err = conn.WriteMessage(2, msg); err != nil {
 			constants.Logger.ErrorLog(err)
 		}
-
-		arrTd, err := srv.DBConnector.SelectTextData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		tdwt := postgresql.TextDataWithType{Type: constants.TypeTextData.String(),
-			TextData: arrTd}
-		msg, err = json.MarshalIndent(&tdwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(1, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		arrBd, err := srv.DBConnector.SelectBinaryData(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		bdwt := postgresql.BinaryDataWithType{Type: constants.TypeBinaryData.String(),
-			BinaryData: arrBd}
-		msg, err = json.MarshalIndent(&bdwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(1, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		arrBc, err := srv.DBConnector.SelectBankCard(ctxWV)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-			continue
-		}
-		bcwt := postgresql.BankCardWithType{Type: constants.TypeBankCardData.String(),
-			BankCard: arrBc}
-		msg, err = json.MarshalIndent(&bcwt, "", " ")
-		msg, err = compression.Compress(msg)
-		if err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-		if err = conn.WriteMessage(1, msg); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
-		if err = conn.WriteMessage(0, b); err != nil {
-			constants.Logger.ErrorLog(err)
-		}
-
 	}
 }
 
+// wsDownloadBinaryData websocket переноса бинарных данных с сервера на клиент.
 func (srv *Server) wsDownloadBinaryData(conn *websocket.Conn, r *http.Request) {
 
 	ctx := context.Background()
-	ctxWV := context.WithValue(ctx, postgresql.KeyContext("uid"), r.Header.Get("UID"))
+	ctxWV := context.WithValue(ctx, model.KeyContext("uid"), r.Header.Get("UID"))
 
 	arrPbd, err := srv.DBConnector.SelectPortionBinaryData(ctxWV)
 	if err != nil {
@@ -126,6 +94,7 @@ func (srv *Server) wsDownloadBinaryData(conn *websocket.Conn, r *http.Request) {
 	}
 }
 
+// wsDownloadBinaryData websocket переноса бинарных данных с клиента на сервер.
 func (srv *Server) wsBinaryData(conn *websocket.Conn) {
 	for {
 		_, messageContent, err := conn.ReadMessage()
@@ -138,7 +107,7 @@ func (srv *Server) wsBinaryData(conn *websocket.Conn) {
 			constants.Logger.ErrorLog(err)
 		}
 
-		pbd := postgresql.PortionBinaryData{}
+		pbd := model.PortionBinaryData{}
 		if err = json.Unmarshal(messageContent, &pbd); err != nil {
 			constants.Logger.ErrorLog(err)
 			return
@@ -147,9 +116,14 @@ func (srv *Server) wsBinaryData(conn *websocket.Conn) {
 		ctx := context.Background()
 		connDB, err := srv.Pool.Acquire(ctx)
 		if err != nil {
+			constants.Logger.ErrorLog(err)
 			return
 		}
-		if err = pbd.Insert(ctx, connDB); err != nil {
+		defer connDB.Release()
+
+		ctxVW := context.WithValue(ctx, model.KeyContext("data"), pbd)
+		if err = srv.DBConnector.InsertPortionBinaryData(ctxVW); err != nil {
+			constants.Logger.ErrorLog(err)
 			return
 		}
 		connDB.Release()
