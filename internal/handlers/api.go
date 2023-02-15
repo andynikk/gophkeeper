@@ -58,6 +58,7 @@ func (srv *Server) apiUserRegisterPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenString := ""
+	user.New = true
 	err = srv.DBConnector.NewAccount(&user)
 	if err != nil {
 		w.Header().Add(constants.HeaderAuthorization, tokenString)

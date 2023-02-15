@@ -56,6 +56,8 @@ func (dbc *DBConnector) NewAccount(user *model.User) error {
 
 	ctxVW := context.WithValue(ctx, model.KeyContext("data"), user)
 	pc := PgxpoolConn{conn}
+
+	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
 	recordExists, err := pc.CheckExistence(ctxVW)
 	if err != nil {
 		return errs.ErrErrorServer
@@ -65,7 +67,6 @@ func (dbc *DBConnector) NewAccount(user *model.User) error {
 		return errs.ErrLoginBusy
 	}
 
-	user.HashPassword = cryptography.HashSHA256(user.Password, dbc.Cfg.Key)
 	if _, err = conn.Exec(ctx, constants.QueryInsertUserTemplate, user.Name, user.HashPassword); err != nil {
 		return errs.ErrErrorServer
 	}
