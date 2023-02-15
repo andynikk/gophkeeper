@@ -13,6 +13,7 @@ type User struct {
 	Password     string `json:"password"`
 	HashPassword string `json:"hash_password"`
 	Event        string `json:"event"`
+	New          bool   `json:"new"`
 }
 
 // GetType метод объекта PairLoginPassword. Возвращает текстовое представление объекта
@@ -66,6 +67,11 @@ func (u *User) InstructionsInsert() (string, interface{}, error) {
 
 // CheckExistence метод объекта User проверяющий на существование в БД, по пользователю и УИДу
 func (u *User) CheckExistence() (string, interface{}, error) {
+	if u.New {
+		arg := []interface{}{u.Name}
+		return constants.QuerySelectUserWithWhereTemplate, arg, nil
+	}
+
 	arg := []interface{}{u.Name, u.HashPassword}
 	return constants.QuerySelectUserWithPassword, arg, nil
 }
